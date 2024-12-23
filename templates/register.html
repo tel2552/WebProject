@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>สมัครสมาชิก</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>สมัครสมาชิก</h1>
+        <form action="/register" method="POST">
+            <label for="username">ชื่อผู้ใช้งาน:</label>
+            <input type="text" id="username" name="username" required>
+            
+            <label for="password">รหัสผ่าน:</label>
+            <input type="password" id="password" name="password" required>
+            
+            <label for="role">Role:</label>
+            <select id="role" name="role" required>
+                <option value="user">User</option>
+                <option value="admin">Adminหน่วยงาน</option>
+                <option value="high_admin">ผู้บริหารหน่วยงาน</option>
+                <!-- <option value="all_admin">AllAdmin</option> -->
+            </select><br><br>
+            
+            <button type="submit">สมัครสมาชิก</button>
+        </form>
+        <p>กลับไปหน้า <a href="/">เข้าสู่ระบบ</a></p>
+    </div>
+    <script>
+        document.getElementById('registerForm').addEventListener('submit', async function(event) {
+            event.preventDefault();
+            const username = document.getElementById('username').value;
+
+            const response = await fetch('/register', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ username: username })
+            });
+
+            const result = await response.json();
+
+            if (response.status === 400) {
+                alert(result.detail);
+            } else {
+                alert(result.message);
+            }
+        });
+    </script>
+</body>
+</html>

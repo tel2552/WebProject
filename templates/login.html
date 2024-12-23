@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>เข้าสู่ระบบ</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>เข้าสู่ระบบ</h1>
+        <form action="/login" method="POST">
+            <label for="username">ชื่อผู้ใช้งาน:</label>
+            <input type="text" id="username" name="username" required>
+            
+            <label for="password">รหัสผ่าน:</label>
+            <input type="password" id="password" name="password" required>
+            
+            <button type="submit">เข้าสู่ระบบ</button>
+        </form>
+        <p>ยังไม่มีบัญชี? <a href="/register">สมัครสมาชิก</a></p>
+    </div>
+</body>
+</html>

@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบรับข้อร้องเรียน</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>แบบฟอร์มข้อร้องเรียน</h1>
+        <p>บันทึกการจัดการข้อร้องเรียน</p>
+        <form action="/submit-complaint" method="POST" enctype="application/x-www-form-urlencoded">
+            <label for="name">*ชื่อลูกค้าผู้ร้องเรียน:</label>
+            <input type="text" id="name" name="name" required><br><br>
+
+            <label for="date">*วันที่พบปัญหา:</label>
+            <input type="date" id="date" name="date" required><br><br>
+            
+            <label for="contact">*ช่องทางติดต่อกลับ:
+            </label><label for="contact">โทรศัพท์:</label>
+            <input type="text" id="phonecontact" name="contact" required>
+            <label for="contact">อีเมล:</label>
+            <input type="text" id="mailcontact" name="contact" required><br><br>
+            
+            
+            <label>ประเภทข้อร้องเรียน:</label><br>
+            <div class="checkbox-group">
+                <div class="checkbox-item">
+                    <input type="checkbox" name="type" value="ด้านบุคลากร" id="type1">
+                    <label for="type1">ด้านบุคลากร</label>
+                </div>
+                <div class="checkbox-item">
+                    <input type="checkbox" name="type" value="การบริการงานวิจัย" id="type2">
+                    <label for="type2">การบริการงานวิจัย</label>
+                </div>
+                <div class="checkbox-item">
+                    <input type="checkbox" name="type" value="การบริการวิชาการ" id="type3">
+                    <label for="type3">การบริการวิชาการ</label>
+                </div>
+                <div class="checkbox-item">
+                    <input type="checkbox" name="type" value="การบริหารจัดการของ PIM" id="type4">
+                    <label for="type4">การบริหารจัดการของ PIM</label>
+                </div>
+                <div class="checkbox-item">
+                    <input type="checkbox" name="type" value="การบริการแก่นักศึกษา" id="type5">
+                    <label for="type5">การบริการแก่นักศึกษา</label>
+                </div>
+                <div class="checkbox-item">
+                    <input type="checkbox" name="type" value="อื่นๆ" id="type6">
+                    <label for="type6">อื่นๆ</label>
+                </div>
+                <div class="checkbox-item">
+                    <input type="text" id="otherType" name="otherType" required>
+                </div>
+            </div>
+            
+                <label for="details">*รายละเอียดข้อร้องเรียน:</label><br>
+                <textarea id="details" name="details" rows="4" cols="50" required></textarea><br><br>
+            
+                <button type="submit">ส่งข้อร้องเรียน</button>
+            </div>
+        </form>
+    </div>
+</body>
+</html>

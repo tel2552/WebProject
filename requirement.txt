@@ -1,0 +1,9 @@
+fastapi 
+uvicorn 
+pymongo 
+python-jose[cryptography] 
+passlib[bcrypt] 
+python-dotenv
+jose
+bcrypt==3.2.2
+passlib==1.7.4
