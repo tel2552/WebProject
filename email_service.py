@@ -6,7 +6,7 @@ from email.mime.multipart import MIMEMultipart
 SMTP_SERVER = "smtp.gmail.com"
 SMTP_PORT = 587
 EMAIL_ADDRESS = "ddds33970@gmail.com"
-EMAIL_PASSWORD = "tel044513284"
+EMAIL_PASSWORD = "itkkyhrhlhkhsfjb"
 
 def send_email(title, complaint_id, recipient_email):
     subject = "New Complaint Received"

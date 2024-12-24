@@ -4,6 +4,31 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ระบบรับข้อร้องเรียน</title>
+    <!-- <script>
+        async function submitComplaint(event) {
+            event.preventDefault();
+            
+            const formData = new FormData(event.target);
+            const data = Object.fromEntries(formData.entries());
+
+            try {
+                const response = await fetch("/submit-complaint", {
+                    method: "POST",
+                    body: formData
+                });
+
+                if (response.ok) {
+                    alert("ทำเรื่องเรียบร้อยแล้ว!");
+                    event.target.reset(); // ล้างฟอร์มหลังจากส่งสำเร็จ
+                } else {
+                    const error = await response.json();
+                    alert(`เกิดข้อผิดพลาด: ${error.detail || "ไม่ทราบสาเหตุ"}`);
+                }
+            } catch (err) {
+                alert(`เกิดข้อผิดพลาดในการเชื่อมต่อ: ${err.message}`);
+            }
+        }
+    </script> -->
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
@@ -11,6 +36,9 @@
         <h1>แบบฟอร์มข้อร้องเรียน</h1>
         <p>บันทึกการจัดการข้อร้องเรียน</p>
         <form action="/submit-complaint" method="POST" enctype="application/x-www-form-urlencoded">
+            <label for="title">หัวข้อคำร้อง:</label>
+            <input type="text" id="title" name="title" required><br>
+
             <label for="name">*ชื่อลูกค้าผู้ร้องเรียน:</label>
             <input type="text" id="name" name="name" required><br><br>
 
@@ -24,42 +52,24 @@
             <input type="text" id="mailcontact" name="contact" required><br><br>
             
             
-            <label>ประเภทข้อร้องเรียน:</label><br>
-            <div class="checkbox-group">
-                <div class="checkbox-item">
-                    <input type="checkbox" name="type" value="ด้านบุคลากร" id="type1">
-                    <label for="type1">ด้านบุคลากร</label>
-                </div>
-                <div class="checkbox-item">
-                    <input type="checkbox" name="type" value="การบริการงานวิจัย" id="type2">
-                    <label for="type2">การบริการงานวิจัย</label>
-                </div>
-                <div class="checkbox-item">
-                    <input type="checkbox" name="type" value="การบริการวิชาการ" id="type3">
-                    <label for="type3">การบริการวิชาการ</label>
-                </div>
-                <div class="checkbox-item">
-                    <input type="checkbox" name="type" value="การบริหารจัดการของ PIM" id="type4">
-                    <label for="type4">การบริหารจัดการของ PIM</label>
-                </div>
-                <div class="checkbox-item">
-                    <input type="checkbox" name="type" value="การบริการแก่นักศึกษา" id="type5">
-                    <label for="type5">การบริการแก่นักศึกษา</label>
-                </div>
-                <div class="checkbox-item">
-                    <input type="checkbox" name="type" value="อื่นๆ" id="type6">
-                    <label for="type6">อื่นๆ</label>
-                </div>
-                <div class="checkbox-item">
-                    <input type="text" id="otherType" name="otherType" required>
-                </div>
-            </div>
+            <label>ประเภทข้อร้องเรียน:</label>
+            <select name="team" required>
+                <option value="ด้านบุคลากร">ด้านบุคลากร</option>
+                <option value="การบริการงานวิจัย">การบริการงานวิจัย</option>
+                <option value="การบริการวิชาการ">การบริการวิชาการ</option>
+                <option value="การบริหารจัดการของ PIM">การบริหารจัดการของ PIM</option>
+                <option value="การบริการแก่นักศึกษา">การบริการแก่นักศึกษา</option>
+                <option value="อื่นๆ">อื่นๆ</option>
+            </select><br>
             
-                <label for="details">*รายละเอียดข้อร้องเรียน:</label><br>
-                <textarea id="details" name="details" rows="4" cols="50" required></textarea><br><br>
-            
-                <button type="submit">ส่งข้อร้องเรียน</button>
-            </div>
+            <label>กรณีเลือก "อื่นๆ" โปรดระบุ:</label>
+            <input type="text" name="otherType"><br>
+        
+            <label for="details">*รายละเอียดข้อร้องเรียน:</label><br>
+            <textarea id="details" name="details" rows="4" cols="50" required></textarea><br><br>
+        
+            <button type="submit">ส่งข้อร้องเรียน</button>
+
         </form>
     </div>
 </body>

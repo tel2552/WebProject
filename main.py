@@ -8,6 +8,7 @@ from datetime import timedelta
 from database import users_collection, complaints_collection
 from auth import get_password_hash, verify_password, create_access_token
 from email_service import send_email
+from auth import get_current_user
 
 app = FastAPI()
 
@@ -38,6 +39,10 @@ class UserLogin(BaseModel):
 class Complaint(BaseModel):
     title: str
     details: str
+    name: str
+    date: str
+    contact: str
+    team: str
 
 class ComplaintUpdate(BaseModel):
     status: str
@@ -55,8 +60,13 @@ async def login_user(username: str = Form(...), password: str = Form(...)):
     db_user = users_collection.find_one({"username": username})
     if not db_user or not verify_password(password, db_user["password"]):
         raise HTTPException(status_code=400, detail="Incorrect username or password")
+    
     token = create_access_token(data={"sub": db_user["username"], "role": db_user["role"]}, expires_delta=timedelta(minutes=60))
-    return RedirectResponse(url="/complaint", status_code=303)
+    
+    if db_user["role"] in ["admin", "superadmin"]:
+        return RedirectResponse(url="/admin_complaints", status_code=303)
+    else:
+        return RedirectResponse(url="/complaint", status_code=303)
 
 # Render Register Page
 @app.get("/register", response_class=HTMLResponse)
@@ -91,11 +101,11 @@ def submit_complaint(
     name: str = Form(...),
     date: str = Form(...),
     contact: str = Form(...),
-    type: str = Form(...),
-    otherType: str = Form(None)  # สำหรับกรณีที่เลือก "อื่นๆ"
+    team: str = Form(...),
+    otherTeam: str = Form(None)  # สำหรับกรณีที่เลือก "อื่นๆ"
 ):
     # กำหนดประเภทข้อร้องเรียนที่ใช้งาน
-    complaint_type = otherType if type == "อื่นๆ" else type
+    complaint_team = otherTeam if team == "อื่นๆ" else team
     
     # เพิ่มข้อมูลลง MongoDB
     complaint = {
@@ -104,18 +114,39 @@ def submit_complaint(
         "name": name,
         "date": date,
         "contact": contact,
-        "type": complaint_type,
+        "team": complaint_team,
         "status": "Pending"
     }
     result = complaints_collection.insert_one(complaint)
     complaint_id = str(result.inserted_id)
-
     # กำหนดอีเมลปลายทาง
-    recipient_email = EMAIL_RECIPIENTS.get(complaint_type, "default@example.com")
+    recipient_email = EMAIL_RECIPIENTS.get(complaint_team, "default@example.com")
     
     # ส่งอีเมล
     send_email(title, complaint_id, recipient_email)
 
     return {"message": "Complaint submitted successfully"}
+
+@app.get("/admin/complaints")
+def get_team_complaints(current_user: dict = Depends(get_current_user)):
+    if current_user["role"] != "admin":
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    # ดึงข้อมูลคำร้องที่เกี่ยวข้องกับทีมของ admin
+    complaints = complaints_collection.find({"team": current_user["team"]})
+    complaints_list = []
+    for complaint in complaints:
+        complaints_list.append({
+            "id": str(complaint["_id"]),
+            "title": complaint["title"],
+            "details": complaint["details"],
+            "name": complaint["name"],
+            "date": complaint["date"],
+            "contact": complaint["contact"],
+            "team": complaint["team"],
+            "status": complaint["status"]
+        })
+    return {"complaints": complaints_list}
+
 
 

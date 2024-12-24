@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>คำร้องจากผู้ใช้งาน</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>คำร้องจากผู้ใช้งาน</h1>
+        <table>
+            <thead>
+                <tr>
+                    <th>รหัสคำร้อง</th>
+                    <th>หัวข้อคำร้อง</th>
+                    <th>รายละเอียด</th>
+                    <th>สถานะ</th>
+                </tr>
+            </thead>
+            <tbody id="complaints-table">
+                <!-- จะเติมข้อมูลผ่าน JavaScript -->
+            </tbody>
+        </table>
+    </div>
+    <script>
+        async function fetchComplaints() {
+            const response = await fetch("/admin/complaints", {
+                headers: {
+                    "Authorization": "Bearer " + localStorage.getItem("access_token")
+                }
+            });
+            if (response.ok) {
+                const data = await response.json();
+                const complaints = data.complaints;
+                const tableBody = document.getElementById("complaints-table");
+
+                complaints.forEach(complaint => {
+                    const row = document.createElement("tr");
+
+                    row.innerHTML = `
+                        <td>${complaint.id}</td>
+                        <td>${complaint.title}</td>
+                        <td>${complaint.details}</td>
+                        <td>${complaint.status}</td>
+                    `;
+
+                    tableBody.appendChild(row);
+                });
+            } else {
+                alert("ไม่สามารถดึงข้อมูลคำร้องได้");
+            }
+        }
+
+        // เรียกฟังก์ชันเมื่อโหลดหน้าเว็บ
+        fetchComplaints();
+    </script>
+</body>
+</html>
