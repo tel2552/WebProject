@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ส่งคำร้องไปยังหน่วยงาน</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+
+        h1 {
+            color: #333;
+        }
+
+        form {
+            margin-top: 20px;
+        }
+
+        label {
+            font-weight: bold;
+            margin-bottom: 5px;
+            display: block;
+        }
+
+        input, textarea, select {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        button {
+            background-color: #28a745;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+
+        button:hover {
+            background-color: #218838;
+        }
+    </style>
+</head>
+<body>
+    <h1>พิจารณา/คัดกรอง ข้อร้องเรียนและส่งต่อหน่วยงาน</h1>
+    <form id="forward-complaint-form">
+        <label>ผู้วิเคราะห์ข้อร้องเรียน:</label>
+        <input type="text" id="admin_name" readonly>
+
+        <label>ชื่อผู้ร้องเรียน:</label>
+        <input type="text" id="name" readonly>
+
+        <label>หัวข้อเรื่อง:</label>
+        <input type="text" id="title" readonly>
+
+        <label>รายละเอียด:</label>
+        <textarea id="details" rows="5" readonly></textarea>
+
+        <label>หน่วยงานสำหรับจัดการ:</label>
+        <select id="department">
+            <option value="HR">ฝ่ายบุคลากร</option>
+            <option value="Research">ฝ่ายวิจัย</option>
+            <option value="Academic">ฝ่ายวิชาการ</option>
+            <option value="StudentServices">ฝ่ายบริการนักศึกษา</option>
+        </select>
+
+        <label>ข้อมูลเพิ่มเติม (ถ้ามี):</label>
+        <textarea id="additional-info" rows="3"></textarea>
+
+        <button type="submit">ส่งเรื่องร้องเรียน</button>
+    </form>
+
+    <script>
+        // ดึงข้อมูลคำร้องจาก URL (เช่น /forward-complaint/{id})
+        const complaintId = window.location.pathname.split("/").pop();
+
+        async function loadusername() {
+            const response = await fetch(`/admin/get-username/${user_id}`);
+            const username = await response.json();
+
+            document.getElementById("admin_name").value = username;
+        }
+
+        async function loadComplaint() {
+            const response = await fetch(`/admin/get-complaint/${complaintId}`);
+            const complaint = await response.json();
+            
+            document.getElementById("name").value = complaint.name;
+            document.getElementById("title").value = complaint.title;
+            document.getElementById("details").value = complaint.details;
+        }
+
+        // ส่งคำร้องไปยังหน่วยงาน
+        document.getElementById("forward-complaint-form").addEventListener("submit", async (e) => {
+            e.preventDefault();
+
+            const department = document.getElementById("department").value;
+            const additionalInfo = document.getElementById("additional-info").value;
+
+            const response = await fetch(`/admin/forward-complaint/${complaintId}`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ department, additionalInfo })
+            });
+
+            if (response.ok) {
+                alert("ส่งเรื่องร้องเรียนเรียบร้อยแล้ว!");
+                window.location.href = "/admin/dashboard"; // กลับไปยังหน้าหลัก Admin
+            } else {
+                const error = await response.json();
+                alert(`เกิดข้อผิดพลาด: ${error.detail}`);
+            }
+        });
+
+        // โหลดข้อมูลคำร้องเมื่อเปิดหน้า
+        loadComplaint();
+    </script>
+</body>
+</html>

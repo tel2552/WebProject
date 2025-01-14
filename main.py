@@ -9,6 +9,9 @@ from database import users_collection, complaints_collection
 from auth import get_password_hash, verify_password, create_access_token
 from email_service import send_email
 from auth import get_current_user
+from bson import ObjectId
+from bson.errors import InvalidId
+import datetime
 
 app = FastAPI()
 
@@ -148,5 +151,125 @@ def get_team_complaints(current_user: dict = Depends(get_current_user)):
         })
     return {"complaints": complaints_list}
 
+# ดึงข้อมูลคำร้องทั้งหมด
+@app.get("/admin/get-complaints")
+def get_complaints():
+    complaints = list(complaints_collection.find())
+    for complaint in complaints:
+        complaint["_id"] = str(complaint["_id"])  # แปลง ObjectId เป็น string
+    return complaints
+
+# อัปเดตสถานะคำร้อง
+@app.put("/admin/update-complaint/{id}")
+def update_complaint_status(id: str, update: ComplaintUpdate):
+    result = complaints_collection.update_one(
+        {"_id": ObjectId(id)},
+        {"$set": {"status": update.status}}
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Complaint not found")
+    return {"message": "Status updated successfully"}
+
+# Render Admin Complaints Page
+@app.get("/admin_complaints", response_class=HTMLResponse)
+async def show_admin_complaints_page(request: Request):
+    return templates.TemplateResponse("admin_complaints.html", {"request": request})
+
+# Handle Logout
+@app.get("/logout")
+async def logout_user(request: Request):
+    response = RedirectResponse(url="/")
+    response.delete_cookie(key="access_token")
+    return response
+
+# ดึงข้อมูลคำร้องเฉพาะ ID
+@app.get("/admin/get-complaint/{id}")
+def get_complaint(id: str):
+    complaint = complaints_collection.find_one({"_id": ObjectId(id)})
+    if not complaint:
+        raise HTTPException(status_code=404, detail="Complaint not found")
+    complaint["_id"] = str(complaint["_id"])  # แปลง ObjectId เป็น string
+    return complaint
+
+# ส่งคำร้องไปยังหน่วยงาน
+@app.get("/admin/forward-complaint/{id}", response_class=HTMLResponse)
+async def forward_complaint(id: str, request: Request):  # เพิ่ม `request: Request`
+    try:
+        # ตรวจสอบว่า ID ถูกต้อง
+        username = users_collection.find_one({"username": ObjectId(id)})
+        complaint = complaints_collection.find_one({"_id": ObjectId(id)})
+        if not complaint:
+            raise HTTPException(status_code=404, detail="Complaint not found")
+        
+        # ส่งข้อมูลไปยัง admin_forward_complaint.html
+        return templates.TemplateResponse("admin_forward_complaint.html",{
+            "request": request,
+            "complaint": complaint,
+            "admin_name": username
+        }  # ใช้ `request` จากพารามิเตอร์
+        )
+    except InvalidId:
+        raise HTTPException(status_code=400, detail=f"Invalid complaint ID: {id}")
 
 
+@app.post("/admin/resolve-complaint/{id}")
+def resolve_complaint(id: str, department: str = Form(...), additional_info: str = Form(None)):
+    # อัปเดตสถานะเป็น Resolved ใน MongoDB
+    result = complaints_collection.update_one(
+        {"_id": ObjectId(id)},
+        {
+            "$set": {
+                "status": "Resolved",
+                "resolved_department": department,
+                "additional_info": additional_info,
+                "resolved_date": datetime.utcnow(),
+            }
+        }
+    )
+
+    if result.modified_count == 1:
+        return {"message": "Complaint resolved successfully"}
+    else:
+        return {"error": "Failed to resolve complaint"}
+    
+@app.get("/admin/get-complaints")
+def get_complaints():
+    complaints = complaints_collection.find()
+    response = []
+    for complaint in complaints:
+        response.append({
+            "id": str(complaint["_id"]),  # แปลง ObjectId เป็น String
+            "title": complaint["title"],
+            "details": complaint["details"],
+            "name": complaint["name"],
+            "date": complaint["date"],
+            "contact": complaint["contact"],
+            "team": complaint["team"],
+            "status": complaint["status"],
+        })
+    return response
+
+@app.post("/admin/update-status/{id}")
+async def update_status(id: str, additional_info: str):
+    try:
+        # ตรวจสอบว่า ID ถูกต้อง
+        object_id = ObjectId(id)
+        complaint = complaints_collection.find_one({"_id": object_id})
+        if not complaint:
+            raise HTTPException(status_code=404, detail="Complaint not found")
+
+        # อัปเดตสถานะในฐานข้อมูล
+        complaints_collection.update_one(
+            {"_id": object_id}, 
+            {"$set": {"status": "Resolved", "additional_info": additional_info}}
+        )
+        return {"message": "Complaint status updated to Resolved"}
+    except InvalidId:
+        raise HTTPException(status_code=400, detail=f"Invalid complaint ID: {id}")
+    
+@app.get("/admin/get-username/{id}")
+def get_username(id: str):
+    user = users_collection.find_one({"_id": ObjectId(id)})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return {"username": user["username"]}
