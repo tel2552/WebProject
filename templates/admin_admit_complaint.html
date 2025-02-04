@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ส่งคำร้องไปยังหน่วยงาน</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+
+        h1 {
+            color: #333;
+        }
+
+        form {
+            margin-top: 20px;
+        }
+
+        label {
+            font-weight: bold;
+            margin-bottom: 5px;
+            display: block;
+        }
+
+        input, textarea, select {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        button {
+            background-color: #28a745;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+
+        button:hover {
+            background-color: #218838;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #f4f4f4;
+        }
+
+        .add-recipient-btn {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+
+        .add-recipient-btn:hover {
+            background-color: #0056b3;
+        }
+        .severity-options {
+            display: flex;
+            flex-direction: row;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .severity-option {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .severity-option:hover {
+            opacity: 0.9;
+        }
+
+        /* สีสำหรับแต่ละระดับความรุนแรง */
+        .severity-option.low {
+            background-color: #d4edda; /* สีเขียวอ่อน */
+            color: #155724; /* สีเขียวเข้ม */
+        }
+
+        .severity-option.medium {
+            background-color: #fff3cd; /* สีเหลืองอ่อน */
+            color: #856404; /* สีเหลืองเข้ม */
+        }
+
+        .severity-option.high {
+            background-color: #ffe5b4; /* สีส้มอ่อน */
+            color: #cc5500; /* สีส้มเข้ม */
+        }
+
+        .severity-option.critical {
+            background-color: #f8d7da; /* สีฟ้าอ่อน */
+            color: #721c24; /* สีฟ้าเข้ม */
+        }
+
+        /* สไตล์เมื่อติ๊กถูก */
+        .severity-option input[type="radio"] {
+            margin-right: 10px;
+        }
+
+        .severity-option input[type="radio"]:checked + span {
+            font-weight: bold;
+        }
+        /* สไตล์สำหรับส่วน Correction */
+        .correction-section {
+            border: 2px solid #007BFF; /* สีกรอบ */
+            border-radius: 8px; /* มุมโค้ง */
+            padding: 20px;
+            margin: 20px 0;
+            background-color: #f9f9f9; /* สีพื้นหลัง */
+        }
+
+        .correction-section legend {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #007BFF; /* สีข้อความ */
+            padding: 0 10px;
+        }
+
+        .correction-form {
+            display: flex;
+            flex-direction: column;
+            gap: 15px; /* ระยะห่างระหว่างช่อง input */
+        }
+
+        .correction-form label {
+            font-weight: bold;
+            color: #333;
+        }
+
+        .correction-form textarea,
+        .correction-form input[type="text"],
+        .correction-form input[type="date"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 1em;
+        }
+
+        .correction-form textarea {
+            resize: vertical; /* อนุญาตให้ปรับขนาดแนวตั้งได้ */
+        }
+    </style>
+</head>
+<body>
+    <fieldset class="correction-section">
+    <legend>พิจารณา/คัดกรอง ข้อร้องเรียนและส่งต่อหน่วยงาน</legend>
+    <form id="correction-form">
+        <label>ผู้วิเคราะห์ข้อร้องเรียน:</label>
+        <input type="text" id="admin_name" readonly>
+
+        <label>ชื่อผู้ร้องเรียน:</label>
+        <input type="text" id="name" readonly>
+
+        <label>หัวข้อเรื่อง:</label>
+        <input type="text" id="title" readonly>
+
+        <label>รายละเอียด:</label>
+        <textarea id="details" rows="5" readonly></textarea>
+
+        <label>หน่วยงานสำหรับจัดการ:</label>
+        <textarea id="department" readonly></textarea>
+
+        <label>ข้อมูลเพิ่มเติม:</label>
+        <textarea id="additional-info" rows="3" readonly></textarea>
+    </fieldset>
+
+        <!-- ส่วนเพิ่มผู้มีส่วนรับเรื่องร้องเรียน -->
+        <fieldset class="correction-section">
+        <legend>ผู้มีส่วนรับเรื่องร้องเรียน</legend>
+        <div id="recipients-section">
+            <label>ชื่อ:</label>
+            <input type="text" id="recipient-name" placeholder="ชื่อ">
+
+            <label>อีเมล:</label>
+            <input type="email" id="recipient-email" placeholder="อีเมล">
+
+            <label>หน่วยงาน:</label>
+            <input type="text" id="recipient-department" placeholder="หน่วยงาน">
+
+            <label>บทบาท:</label>
+            <input type="text" id="recipient-role" placeholder="บทบาท">
+
+            <button type="button" class="add-recipient-btn" onclick="addRecipient()">เพิ่มผู้รับเรื่อง</button>
+
+            <!-- ตารางแสดงรายชื่อผู้รับเรื่อง -->
+            <table id="recipients-table">
+                <thead>
+                    <tr>
+                        <th>ชื่อ</th>
+                        <th>อีเมล</th>
+                        <th>หน่วยงาน</th>
+                        <th>บทบาท</th>
+                        <th>การดำเนินการ</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- แถวจะถูกเพิ่มที่นี่โดย JavaScript -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- ส่วนเลือกระดับความรุนแรง -->
+        <h2>เลือกระดับความรุนแรง</h2>
+        <label>ระดับความรุนแรง:</label>
+        <div class="severity-options">
+            <label class="severity-option low">
+                <input type="radio" name="severity" value="low"> ต่ำ
+            </label>
+            <label class="severity-option medium">
+                <input type="radio" name="severity" value="medium"> ปานกลาง
+            </label>
+            <label class="severity-option high">
+                <input type="radio" name="severity" value="high"> สูง
+            </label>
+            <label class="severity-option critical">
+                <input type="radio" name="severity" value="critical"> วิกฤต
+            </label>
+        </div>
+        </fieldset>
+        <!-- ส่วน Correction -->
+        <fieldset class="correction-section">
+            <legend>Correction</legend>
+            <div class="correction-form">
+                <label>รายละเอียดการแก้ไข:</label>
+                <textarea id="correction" rows="5" placeholder="กรอกรายละเอียดการแก้ไข"></textarea>
+
+                <label>ชื่อผู้ตรวจสอบ:</label>
+                <input type="text" id="inspector-name" placeholder="ชื่อผู้ตรวจสอบ">
+
+                <label>วันที่ตรวจสอบ:</label>
+                <input type="date" id="inspection-date">
+            </div>
+        </fieldset>
+
+        <button type="submit">ส่งเรื่องร้องเรียน</button>
+    </form>
+
+    <script>
+        // ดึงข้อมูลคำร้องจาก URL (เช่น /forward-complaint/{id})
+        const complaintId = window.location.pathname.split("/").pop();
+
+        // เก็บรายชื่อผู้รับเรื่อง
+        let recipients = [];
+
+        // โหลดชื่อผู้ใช้
+        async function loadusername() {
+            try {
+                const token = localStorage.getItem("access_token");  // ดึง Token จาก localStorage
+                const response = await fetch(`/admin/get-username`, {
+                    headers: {
+                        "Authorization": `Bearer ${token}`  // ส่ง Token ไปกับ Header
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error("Failed to fetch username");
+                }
+
+                const data = await response.json();
+                document.getElementById("admin_name").value = data.username;  // แสดงชื่อผู้ใช้
+            } catch (error) {
+                console.error("Error loading username:", error);
+                alert("ไม่สามารถโหลดชื่อผู้ใช้ได้");
+            }
+        }
+
+        // โหลดข้อมูลคำร้อง
+        async function loadComplaint() {
+            const response = await fetch(`/admin/get-complaint/${complaintId}`);
+            const complaint = await response.json();
+            
+            document.getElementById("name").value = complaint.name;
+            document.getElementById("title").value = complaint.title;
+            document.getElementById("details").value = complaint.details;
+            document.getElementById("department").value = complaint.team;
+            document.getElementById("additional-info").value = complaint.additional_info;
+        }
+
+        // เพิ่มผู้รับเรื่อง
+        function addRecipient() {
+            const name = document.getElementById("recipient-name").value;
+            const email = document.getElementById("recipient-email").value;
+            const department = document.getElementById("recipient-department").value;
+            const role = document.getElementById("recipient-role").value;
+
+            if (name && email && department && role) {
+                recipients.push({ name, email, department, role });  // เพิ่มข้อมูลลงในอาร์เรย์
+                updateRecipientsTable();  // อัปเดตตาราง
+                clearRecipientInputs();  // ล้างช่อง input
+            } else {
+                alert("กรุณากรอกข้อมูลให้ครบถ้วน");
+            }
+        }
+
+        // อัปเดตตารางผู้รับเรื่อง
+        function updateRecipientsTable() {
+            const tableBody = document.querySelector("#recipients-table tbody");
+            tableBody.innerHTML = "";  // ล้างตารางเก่า
+
+            recipients.forEach((recipient, index) => {
+                const row = document.createElement("tr");
+                row.innerHTML = `
+                    <td>${recipient.name}</td>
+                    <td>${recipient.email}</td>
+                    <td>${recipient.department}</td>
+                    <td>${recipient.role}</td> <!-- แสดงข้อมูลในช่องใหม่ -->
+                    <td>
+                        <button type="button" onclick="removeRecipient(${index})">ลบ</button>
+                    </td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+
+        // ล้างช่อง input ผู้รับเรื่อง
+        function clearRecipientInputs() {
+            document.getElementById("recipient-name").value = "";
+            document.getElementById("recipient-email").value = "";
+            document.getElementById("recipient-department").value = "";
+            document.getElementById("recipient-role").value = ""; // ล้างช่องใหม่
+        }
+
+        // ส่งคำร้องไปยังหน่วยงาน
+        document.getElementById("correction-form").addEventListener("submit", async (e) => {
+        e.preventDefault();
+
+        // ดึงค่าระดับความรุนแรง
+        const severityLevel = document.querySelector('input[name="severity"]:checked').value;
+
+        // ดึงข้อมูล Correction
+        const correction = document.getElementById("correction").value;
+        const inspectorName = document.getElementById("inspector-name").value;
+        const inspectionDate = document.getElementById("inspection-date").value;
+
+        // ดึงข้อมูลผู้รับเรื่องจากตาราง
+        const recipients = [];
+        const rows = document.querySelectorAll("#recipients-table tbody tr");
+        rows.forEach(row => {
+            const name = row.cells[0].textContent;
+            const email = row.cells[1].textContent;
+            const department = row.cells[2].textContent;
+            const role = row.cells[3].textContent;
+            recipients.push({ name, email, department, role });
+        });
+
+        // สร้าง payload สำหรับส่งไปยัง backend
+        const payload = {
+            severity_level: severityLevel,
+            recipients: JSON.stringify(recipients), // แปลงเป็น JSON string
+            correction: correction,
+            inspector_name: inspectorName,
+            inspection_date: inspectionDate,
+        };
+
+        // ส่งข้อมูลไปยัง backend
+        try {
+            const response = await fetch(`/admin/forward-complaint/${complaintId}`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json", // ระบุว่าเราส่งข้อมูลเป็น JSON
+                },
+                body: JSON.stringify(payload), // แปลง payload เป็น JSON string
+            });
+
+            if (response.ok) {
+                alert("ส่งเรื่องร้องเรียนเรียบร้อยแล้ว!");
+                window.location.href = "/admin_complaints"; // ไปยังหน้ารายการคำร้อง
+            } else {
+                const errorData = await response.json();
+                alert(`เกิดข้อผิดพลาด: ${errorData.detail || "ไม่สามารถส่งข้อมูลได้"}`);
+            }
+        } catch (error) {
+            console.error("Error submitting form:", error);
+            alert("เกิดข้อผิดพลาดในการส่งข้อมูล");
+        }
+    });
+
+        // โหลดข้อมูลคำร้องเมื่อเปิดหน้า
+        // loadusername();
+        loadComplaint();
+    </script>
+</body>
+</html>

@@ -4,38 +4,57 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ระบบรับข้อร้องเรียน</title>
-    <!-- <script>
-        async function submitComplaint(event) {
-            event.preventDefault();
-            
-            const formData = new FormData(event.target);
-            const data = Object.fromEntries(formData.entries());
+    <script>
+        document.getElementById("complaint-form").addEventListener("submit", async (e) => {
+            e.preventDefault();
 
+            const title = document.getElementById("title").value;
+            const formData = new FormData();
+            formData.append("title", title);
+            
+
+            const response = await fetch("/submit-complaint", {
+                method: "POST",
+                body: formData
+            });
+
+            if (response.ok) {
+                alert("ส่งเรื่องร้องเรียนเรียบร้อยแล้ว!");
+            } else {
+                alert("เกิดข้อผิดพลาดในการส่งเรื่องร้องเรียน");
+            }
+        });
+
+        async function logout() {
             try {
-                const response = await fetch("/submit-complaint", {
-                    method: "POST",
-                    body: formData
+                // ลบ Token จาก localStorage
+                localStorage.removeItem("access_token");
+
+                // ส่งคำขอไปยังเซิร์ฟเวอร์เพื่อลบ Cookie (ถ้ามี)
+                const response = await fetch("/logout", {
+                    method: "GET"
                 });
 
                 if (response.ok) {
-                    alert("ทำเรื่องเรียบร้อยแล้ว!");
-                    event.target.reset(); // ล้างฟอร์มหลังจากส่งสำเร็จ
+                    alert("Logged out successfully");
+                    window.location.href = "/";  // Redirect ไปหน้า Login
                 } else {
                     const error = await response.json();
-                    alert(`เกิดข้อผิดพลาด: ${error.detail || "ไม่ทราบสาเหตุ"}`);
+                    alert(`Error: ${error.detail}`);
                 }
-            } catch (err) {
-                alert(`เกิดข้อผิดพลาดในการเชื่อมต่อ: ${err.message}`);
+            } catch (error) {
+                console.error("Error during logout:", error);
+                alert("Failed to logout");
             }
         }
-    </script> -->
+    </script>
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
     <div class="container">
         <h1>แบบฟอร์มข้อร้องเรียน</h1>
         <p>บันทึกการจัดการข้อร้องเรียน</p>
-        <form action="/submit-complaint" method="POST" enctype="application/x-www-form-urlencoded">
+        <form id="complaint-form">
             <label for="title">หัวข้อคำร้อง:</label>
             <input type="text" id="title" name="title" required><br>
 
@@ -70,7 +89,8 @@
         
             <button type="submit">ส่งข้อร้องเรียน</button>
             <!-- ปุ่ม Logout -->
-            <button type="button" onclick="location.href='/'">Logout</button>
+            <button onclick="logout()">Logout</button>
+            
         </form>
     </div>
 </body>

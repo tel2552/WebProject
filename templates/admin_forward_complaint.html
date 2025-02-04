@@ -44,11 +44,52 @@
         button:hover {
             background-color: #218838;
         }
+
+        .correction-section {
+            border: 2px solid #007BFF; /* สีกรอบ */
+            border-radius: 8px; /* มุมโค้ง */
+            padding: 20px;
+            margin: 20px 0;
+            background-color: #f9f9f9; /* สีพื้นหลัง */
+        }
+
+        .correction-section legend {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #007BFF; /* สีข้อความ */
+            padding: 0 10px;
+        }
+
+        .correction-form {
+            display: flex;
+            flex-direction: column;
+            gap: 15px; /* ระยะห่างระหว่างช่อง input */
+        }
+
+        .correction-form label {
+            font-weight: bold;
+            color: #333;
+        }
+
+        .correction-form textarea,
+        .correction-form input[type="text"],
+        .correction-form input[type="date"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 1em;
+        }
+
+        .correction-form textarea {
+            resize: vertical; /* อนุญาตให้ปรับขนาดแนวตั้งได้ */
+        }
     </style>
 </head>
 <body>
-    <h1>พิจารณา/คัดกรอง ข้อร้องเรียนและส่งต่อหน่วยงาน</h1>
-    <form id="forward-complaint-form">
+    <fieldset class="correction-section">
+    <legend>พิจารณา/คัดกรอง ข้อร้องเรียนและส่งต่อหน่วยงาน</legend>
+    <form id="correction-form">
         <label>ผู้วิเคราะห์ข้อร้องเรียน:</label>
         <input type="text" id="admin_name" readonly>
 
@@ -63,14 +104,15 @@
 
         <label>หน่วยงานสำหรับจัดการ:</label>
         <select id="department">
-            <option value="HR">ฝ่ายบุคลากร</option>
-            <option value="Research">ฝ่ายวิจัย</option>
-            <option value="Academic">ฝ่ายวิชาการ</option>
-            <option value="StudentServices">ฝ่ายบริการนักศึกษา</option>
+            <option value="ฝ่ายบุคลากร">ฝ่ายบุคลากร</option>
+            <option value="ฝ่ายวิจัย">ฝ่ายวิจัย</option>
+            <option value="ฝ่ายวิชาการ">ฝ่ายวิชาการ</option>
+            <option value="ฝ่ายบริการนักศึกษา">ฝ่ายบริการนักศึกษา</option>
         </select>
 
         <label>ข้อมูลเพิ่มเติม (ถ้ามี):</label>
         <textarea id="additional-info" rows="3"></textarea>
+    </fieldset>
 
         <button type="submit">ส่งเรื่องร้องเรียน</button>
     </form>
@@ -80,10 +122,24 @@
         const complaintId = window.location.pathname.split("/").pop();
 
         async function loadusername() {
-            const response = await fetch(`/admin/get-username/${user_id}`);
-            const username = await response.json();
+            try {
+                const token = localStorage.getItem("access_token");  // ดึง Token จาก localStorage
+                const response = await fetch(`/admin/get-username`, {
+                    headers: {
+                        "Authorization": `Bearer ${token}`  // ส่ง Token ไปกับ Header
+                    }
+                });
 
-            document.getElementById("admin_name").value = username;
+                if (!response.ok) {
+                    throw new Error("Failed to fetch username");
+                }
+
+                const data = await response.json();
+                document.getElementById("admin_name").value = data.username;  // แสดงชื่อผู้ใช้
+            } catch (error) {
+                console.error("Error loading username:", error);
+                alert("ไม่สามารถโหลดชื่อผู้ใช้ได้");
+            }
         }
 
         async function loadComplaint() {
@@ -96,24 +152,25 @@
         }
 
         // ส่งคำร้องไปยังหน่วยงาน
-        document.getElementById("forward-complaint-form").addEventListener("submit", async (e) => {
+        document.getElementById("correction-form").addEventListener("submit", async (e) => {
             e.preventDefault();
 
             const department = document.getElementById("department").value;
             const additionalInfo = document.getElementById("additional-info").value;
-
-            const response = await fetch(`/admin/forward-complaint/${complaintId}`, {
+            const formData = new FormData();
+            formData.append("department", department);
+            formData.append("additional_info", additionalInfo);  // เพิ่ม additional_info
+            
+            const response = await fetch(`/admin/admit-complaint/${complaintId}`, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ department, additionalInfo })
+                body: formData  // ส่งเป็น Form Data
             });
 
             if (response.ok) {
                 alert("ส่งเรื่องร้องเรียนเรียบร้อยแล้ว!");
-                window.location.href = "/admin/dashboard"; // กลับไปยังหน้าหลัก Admin
+                window.location.href = "/admin_complaints"; // ไปยังหน้ารายการคำร้อง
             } else {
-                const error = await response.json();
-                alert(`เกิดข้อผิดพลาด: ${error.detail}`);
+                alert("เกิดข้อผิดพลาดในการส่งเรื่องร้องเรียน");
             }
         });
 
