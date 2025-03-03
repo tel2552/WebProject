@@ -15,6 +15,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ส่งคำร้องไปยังหน่วยงาน</title>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -193,10 +194,24 @@
             });
 
             if (response.ok) {
-                alert("ส่งเรื่องร้องเรียนเรียบร้อยแล้ว!");
-                window.location.href = "/admin_complaints"; // ไปยังหน้ารายการคำร้อง
+                Swal.fire({
+                        icon: 'success',
+                        title: 'ส่งเรื่องร้องเรียนเรียบร้อยแล้ว!',
+                        text: 'เราได้รับเรื่องร้องเรียนของคุณแล้ว',
+                        confirmButtonText: 'ตกลง',
+                        timer: 3000, // Automatically close after 3 seconds
+                        timerProgressBar: true,
+                    }).then(() => {
+                        // form.reset(); //reset form
+                        window.location.href = "/admin_complaints"; // ไปยังหน้ารายการคำร้อง
+                    });
             } else {
-                alert("เกิดข้อผิดพลาดในการส่งเรื่องร้องเรียน");
+                Swal.fire({
+                        icon: 'error',
+                        title: 'เกิดข้อผิดพลาด!',
+                        text: 'เกิดข้อผิดพลาดในการส่งเรื่องร้องเรียน กรุณาลองใหม่อีกครั้ง',
+                        confirmButtonText: 'ตกลง',
+                    });
             }
         });
 

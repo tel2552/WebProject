@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ส่งคำร้องไปยังหน่วยงาน</title>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -274,24 +275,35 @@
         let recipients = [];
 
         // โหลดชื่อผู้ใช้
-        async function loadusername() {
+        async function loadAdminName() {
             try {
-                const token = localStorage.getItem("access_token");  // ดึง Token จาก localStorage
-                const response = await fetch(`/admin/get-username`, {
+                const token = localStorage.getItem('access_token'); // get from access_token.
+                if (!token){
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'เกิดข้อผิดพลาด!',
+                        text: "คุณยังไม่ได้เข้าสู่ระบบ",
+                        confirmButtonText: 'ตกลง',
+                    }).then(()=>{
+                        window.location.href = "/"; 
+                    });
+                    return;
+                }
+                const response = await fetch('/admin/get-username', {
                     headers: {
-                        "Authorization": `Bearer ${token}`  // ส่ง Token ไปกับ Header
+                        'Authorization': `Bearer ${token}`
                     }
                 });
-
-                if (!response.ok) {
-                    throw new Error("Failed to fetch username");
+                if (response.ok) {
+                    const data = await response.json();
+                    document.getElementById('admin_name').value = data.username;
+                } else {
+                    console.error('Failed to fetch admin name');
+                    document.getElementById('admin_name').value = 'ไม่สามารถโหลดชื่อผู้ใช้ได้';
                 }
-
-                const data = await response.json();
-                document.getElementById("admin_name").value = data.username;  // แสดงชื่อผู้ใช้
             } catch (error) {
-                console.error("Error loading username:", error);
-                alert("ไม่สามารถโหลดชื่อผู้ใช้ได้");
+                console.error('Error:', error);
+                document.getElementById('admin_name').value = 'ไม่สามารถโหลดชื่อผู้ใช้ได้';
             }
         }
 
@@ -394,20 +406,39 @@
             });
 
             if (response.ok) {
-                alert("ส่งเรื่องร้องเรียนเรียบร้อยแล้ว!");
-                window.location.href = "/admin_complaints"; // ไปยังหน้ารายการคำร้อง
+                Swal.fire({
+                        icon: 'success',
+                        title: 'ส่งเรื่องร้องเรียนเรียบร้อยแล้ว!',
+                        text: 'เราได้รับเรื่องร้องเรียนของคุณแล้ว',
+                        confirmButtonText: 'ตกลง',
+                        timer: 3000, // Automatically close after 3 seconds
+                        timerProgressBar: true,
+                    }).then(() => {
+                        // form.reset(); //reset 
+                        window.location.href = "/admin_complaints"; // ไปยังหน้ารายการคำร้อง
+                    });
             } else {
                 const errorData = await response.json();
-                alert(`เกิดข้อผิดพลาด: ${errorData.detail || "ไม่สามารถส่งข้อมูลได้"}`);
+                Swal.fire({
+                        icon: 'error',
+                        title: 'เกิดข้อผิดพลาด!',
+                        text: `เกิดข้อผิดพลาด: ${errorData.detail || "ไม่สามารถส่งข้อมูลได้"}`,
+                        confirmButtonText: 'ตกลง',
+                    });
             }
         } catch (error) {
             console.error("Error submitting form:", error);
-            alert("เกิดข้อผิดพลาดในการส่งข้อมูล");
+            Swal.fire({
+                        icon: 'error',
+                        title: 'เกิดข้อผิดพลาด!',
+                        text: 'เกิดข้อผิดพลาดในการส่งเรื่องร้องเรียน กรุณาลองใหม่อีกครั้ง',
+                        confirmButtonText: 'ตกลง',
+                    });
         }
     });
 
         // โหลดข้อมูลคำร้องเมื่อเปิดหน้า
-        // loadusername();
+        window.onload = loadAdminName;
         loadComplaint();
     </script>
 </body>
