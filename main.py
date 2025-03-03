@@ -65,11 +65,8 @@ async def login_user(username: str = Form(...), password: str = Form(...)):
         raise HTTPException(status_code=400, detail="Incorrect username or password")
     
     token = create_access_token(data={"sub": db_user["username"], "role": db_user["role"]}, expires_delta=timedelta(minutes=60))
-    
-    if db_user["role"] in ["admin", "superadmin"]:
-        return RedirectResponse(url="/admin_complaints", status_code=303)
-    else:
-        return RedirectResponse(url="/complaint", status_code=303)
+    redirect_url = "/admin_complaints" if db_user["role"] in ["admin", "superadmin"] else "/complaint"
+    return JSONResponse(content={"token": token, "redirect_url": redirect_url})
 
 # Render Register Page
 @app.get("/register", response_class=HTMLResponse)
@@ -153,13 +150,13 @@ def get_team_complaints(current_user: dict = Depends(get_current_user)):
         })
     return {"complaints": complaints_list}
 
-# ดึงข้อมูลคำร้องทั้งหมด
-# @app.get("/admin/get-complaints")
-# def get_complaints():
-#     complaints = list(complaints_collection.find())
-#     for complaint in complaints:
-#         complaint["_id"] = str(complaint["_id"])  # แปลง ObjectId เป็น string
-#     return complaints
+# ดึงข้อมูลคำร้องทั้งหมดและแปลง ObjectId เป็น String
+@app.get("/admin/get-complaints")
+def get_complaints():
+    complaints = list(complaints_collection.find())
+    for complaint in complaints:
+        complaint["_id"] = str(complaint["_id"])  # แปลง ObjectId เป็น string
+    return complaints
 
 # Render Admin Complaints Page
 @app.get("/admin_complaints", response_class=HTMLResponse)
@@ -266,8 +263,15 @@ def get_complaints():
         })
     return response
 
+def get_current_user_Mock():
+    return {"username": "admin_user"}
+
 @app.get("/admin/get-username")
 def get_username(current_user: dict = Depends(get_current_user)):
+    # if current_user:
+    #     return JSONResponse(content={"username": current_user["username"]}, status_code=200)
+    # else:
+    #     return JSONResponse(content={"msg": "User not found"}, status_code=404)
     return {"username": current_user["username"]}
 
 @app.post("/admin/forward-complaint/{id}")

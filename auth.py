@@ -42,10 +42,7 @@ def get_current_user(token: str = Depends(oauth2_scheme)):
     except JWTError:
         raise credentials_exception
 
-    user = users_collection.find_one({"username": username})
+    user = users_collection.find_one({"username": username},{"_id": 0, "username": 1, "role": 1}) #<-- THIS LINE CHANGED
     if user is None:
         raise credentials_exception
     return user
-# def get_current_user(token: str = Depends(oauth2_scheme)):
-#     payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-#     return {"username": payload.get("sub"), "team": payload.get("team")}

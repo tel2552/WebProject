@@ -1,5 +1,16 @@
 <!DOCTYPE html>
 <html lang="en">
+    <style>
+        body  {
+            background-image: url("/static/bg_pim.jpg");
+            background-color: #cccccc;
+            background-position: center; /* Center the image */
+            background-repeat: no-repeat; /* Do not repeat the image */
+            -moz-background-size: 100% 100%;
+            -webkit-background-size: 100% 100%;
+            background-size: 100% 100%;
+        }
+        </style>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -121,24 +132,35 @@
         // ดึงข้อมูลคำร้องจาก URL (เช่น /forward-complaint/{id})
         const complaintId = window.location.pathname.split("/").pop();
 
-        async function loadusername() {
+        async function loadAdminName() {
             try {
-                const token = localStorage.getItem("access_token");  // ดึง Token จาก localStorage
-                const response = await fetch(`/admin/get-username`, {
+                const token = localStorage.getItem('access_token'); // get from access_token.
+                if (!token){
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'เกิดข้อผิดพลาด!',
+                        text: "คุณยังไม่ได้เข้าสู่ระบบ",
+                        confirmButtonText: 'ตกลง',
+                    }).then(()=>{
+                        window.location.href = "/"; 
+                    });
+                    return;
+                }
+                const response = await fetch('/admin/get-username', {
                     headers: {
-                        "Authorization": `Bearer ${token}`  // ส่ง Token ไปกับ Header
+                        'Authorization': `Bearer ${token}`
                     }
                 });
-
-                if (!response.ok) {
-                    throw new Error("Failed to fetch username");
+                if (response.ok) {
+                    const data = await response.json();
+                    document.getElementById('admin_name').value = data.username;
+                } else {
+                    console.error('Failed to fetch admin name');
+                    document.getElementById('admin_name').value = 'ไม่สามารถโหลดชื่อผู้ใช้ได้';
                 }
-
-                const data = await response.json();
-                document.getElementById("admin_name").value = data.username;  // แสดงชื่อผู้ใช้
             } catch (error) {
-                console.error("Error loading username:", error);
-                alert("ไม่สามารถโหลดชื่อผู้ใช้ได้");
+                console.error('Error:', error);
+                document.getElementById('admin_name').value = 'ไม่สามารถโหลดชื่อผู้ใช้ได้';
             }
         }
 
@@ -150,6 +172,10 @@
             document.getElementById("title").value = complaint.title;
             document.getElementById("details").value = complaint.details;
         }
+        document.addEventListener("DOMContentLoaded", function() {
+            loadComplaint();
+            loadusername();
+        });
 
         // ส่งคำร้องไปยังหน่วยงาน
         document.getElementById("correction-form").addEventListener("submit", async (e) => {
@@ -175,7 +201,7 @@
         });
 
         // โหลดข้อมูลคำร้องเมื่อเปิดหน้า
-        loadComplaint();
+        window.onload = loadAdminName;
     </script>
 </body>
 </html>
