@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ส่งคำร้องไปยังหน่วยงาน</title>
+    <title>อนุมัติคำร้องไปยังหน่วยงาน</title>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
         body {
@@ -200,20 +200,6 @@
         <fieldset class="correction-section">
         <legend>ผู้มีส่วนรับเรื่องร้องเรียน</legend>
         <div id="recipients-section">
-            <label>ชื่อ:</label>
-            <input type="text" id="recipient-name" placeholder="ชื่อ">
-
-            <label>อีเมล:</label>
-            <input type="email" id="recipient-email" placeholder="อีเมล">
-
-            <label>หน่วยงาน:</label>
-            <input type="text" id="recipient-department" placeholder="หน่วยงาน">
-
-            <label>บทบาท:</label>
-            <input type="text" id="recipient-role" placeholder="บทบาท">
-
-            <button type="button" class="add-recipient-btn" onclick="addRecipient()">เพิ่มผู้รับเรื่อง</button>
-
             <!-- ตารางแสดงรายชื่อผู้รับเรื่อง -->
             <table id="recipients-table">
                 <thead>
@@ -222,7 +208,6 @@
                         <th>อีเมล</th>
                         <th>หน่วยงาน</th>
                         <th>บทบาท</th>
-                        <th>การดำเนินการ</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -236,16 +221,16 @@
         <label>ระดับความรุนแรง:</label>
         <div class="severity-options">
             <label class="severity-option low">
-                <input type="radio" name="severity" value="low"> ต่ำ
+                <input type="radio" name="severity" value="low" disabled> ต่ำ
             </label>
             <label class="severity-option medium">
-                <input type="radio" name="severity" value="medium"> ปานกลาง
+                <input type="radio" name="severity" value="medium" disabled> ปานกลาง
             </label>
             <label class="severity-option high">
-                <input type="radio" name="severity" value="high"> สูง
+                <input type="radio" name="severity" value="high" disabled> สูง
             </label>
             <label class="severity-option critical">
-                <input type="radio" name="severity" value="critical"> วิกฤต
+                <input type="radio" name="severity" value="critical" disabled> วิกฤต
             </label>
         </div>
         </fieldset>
@@ -256,13 +241,13 @@
             <div class="correction-form">
                 <h3>การตรวจสอบข้อร้องเรียน</h3>
                 <label>รายละเอียด:</label>
-                <textarea id="correction1" rows="3" placeholder="โปรดกรอกรายละเอียด" required></textarea>
+                <textarea id="correction1" rows="3" placeholder="โปรดกรอกรายละเอียด" readonly></textarea>
         
                 <label>ผู้รับผิดชอบ:</label>
-                <input type="text" id="inspector-name1" placeholder="ชื่อผู้รับผิดชอบ">
+                <input type="text" id="inspector-name1" placeholder="ชื่อผู้รับผิดชอบ" readonly>
         
                 <label>วันที่:</label>
-                <input type="date" id="inspection-date1">
+                <input type="date" id="inspection-date1" readonly>
             </div>
         
             <hr class="section-divider">
@@ -271,13 +256,13 @@
             <div class="correction-form">
                 <h3>รายละเอียดของการแก้ไขข้อบกพร่อง</h3>
                 <label>รายละเอียด:</label>
-                <textarea id="correction2" rows="3" placeholder="โปรดกรอกรายละเอียด" required></textarea>
+                <textarea id="correction2" rows="3" placeholder="โปรดกรอกรายละเอียด" readonly></textarea>
         
                 <label>ผู้รับผิดชอบ:</label>
-                <input type="text" id="inspector-name2" placeholder="ชื่อผู้รับผิดชอบ">
+                <input type="text" id="inspector-name2" placeholder="ชื่อผู้รับผิดชอบ" readonly>
         
                 <label>วันที่:</label>
-                <input type="date" id="inspection-date2">
+                <input type="date" id="inspection-date2" readonly>
             </div>
         
             <hr class="section-divider">
@@ -286,13 +271,13 @@
             <div class="correction-form">
                 <h3>รายละเอียดของการปฏิบัติการแก้ไขไม่ให้เกิดซ้ำ</h3>
                 <label>รายละเอียด:</label>
-                <textarea id="correction3" rows="3" placeholder="โปรดกรอกรายละเอียด" required></textarea>
+                <textarea id="correction3" rows="3" placeholder="โปรดกรอกรายละเอียด" readonly></textarea>
         
                 <label>ผู้รับผิดชอบ:</label>
-                <input type="text" id="inspector-name3" placeholder="ชื่อผู้รับผิดชอบ">
+                <input type="text" id="inspector-name3" placeholder="ชื่อผู้รับผิดชอบ" readonly>
         
                 <label>วันที่:</label>
-                <input type="date" id="inspection-date3">
+                <input type="date" id="inspection-date3" readonly>
             </div>
             
             <hr class="section-divider">
@@ -301,13 +286,13 @@
             <div class="correction-form">
                 <h3>การตอบสนองต่อลูกค้า</h3>
                 <label>รายละเอียด:</label>
-                <textarea id="correction4" rows="3" placeholder="โปรดกรอกรายละเอียด" required></textarea>
+                <textarea id="correction4" rows="3" placeholder="โปรดกรอกรายละเอียด" readonly></textarea>
         
                 <label>ผู้รับผิดชอบ:</label>
-                <input type="text" id="inspector-name4" placeholder="ชื่อผู้รับผิดชอบ">
+                <input type="text" id="inspector-name4" placeholder="ชื่อผู้รับผิดชอบ" readonly>
         
                 <label>วันที่:</label>
-                <input type="date" id="inspection-date4">
+                <input type="date" id="inspection-date4" readonly>
             </div>
 
             <hr class="section-divider">
@@ -316,19 +301,17 @@
             <div class="correction-form">
                 <h3>ความคิดเห็นของลูกค้า</h3>
                 <label>รายละเอียด:</label>
-                <textarea id="correction5" rows="3" placeholder="โปรดกรอกรายละเอียด" required></textarea>
+                <textarea id="correction5" rows="3" placeholder="โปรดกรอกรายละเอียด" readonly></textarea>
         
                 <label>ผู้รับผิดชอบ:</label>
-                <input type="text" id="inspector-name5" placeholder="ชื่อผู้รับผิดชอบ">
+                <input type="text" id="inspector-name5" placeholder="ชื่อผู้รับผิดชอบ" readonly>
         
                 <label>วันที่:</label>
-                <input type="date" id="inspection-date5">
+                <input type="date" id="inspection-date5" readonly>
             </div>
         </fieldset>
-            <!-- <button type="submit">บันทึกข้อมูล</button> -->
-            <button type="submit">เสนออนุมัติ</button>
+    <button type="submit">อนุมัติข้อร้องเรียน</button>
     </form>
-
     <script>
         // ดึงข้อมูลคำร้องจาก URL (เช่น /forward-complaint/{id})
         const complaintId = window.location.pathname.split("/").pop();
@@ -379,27 +362,37 @@
             document.getElementById("details").value = complaint.details;
             document.getElementById("department").value = complaint.team;
             document.getElementById("additional-info").value = complaint.additional_info;
+            document.getElementById("correction1").value = complaint.correction1;
+            document.getElementById("correction2").value = complaint.correction2;
+            document.getElementById("correction3").value = complaint.correction3;
+            document.getElementById("correction4").value = complaint.correction4;
+            document.getElementById("correction5").value = complaint.correction5;
+            document.getElementById("inspector-name1").value = complaint.inspector_name1;
+            document.getElementById("inspector-name2").value = complaint.inspector_name2;
+            document.getElementById("inspector-name3").value = complaint.inspector_name3;
+            document.getElementById("inspector-name4").value = complaint.inspector_name4;
+            document.getElementById("inspector-name5").value = complaint.inspector_name5;
+            document.getElementById("inspection-date1").value = complaint.inspection_date1;
+            document.getElementById("inspection-date2").value = complaint.inspection_date2;
+            document.getElementById("inspection-date3").value = complaint.inspection_date3;
+            document.getElementById("inspection-date4").value = complaint.inspection_date4;
+            document.getElementById("inspection-date5").value = complaint.inspection_date5;
+            // Load and display recipients
+            if (complaint.recipients && complaint.recipients.length > 0) {
+              recipients = complaint.recipients; // Update the global recipients array
+              updateRecipientsTable(); // Call the function to update the table
+            }
+            // Pre-select the severity radio button
+            const severityLevel = complaint.severity_level;
+            const severityRadioButton = document.querySelector(`input[name="severity"][value="${severityLevel}"]`);
+            if (severityRadioButton) {
+                severityRadioButton.checked = true;
+            }
         }
         document.addEventListener("DOMContentLoaded", function() {
             loadComplaint();
-            loadusername();
+            loadAdminName();
         });
-
-        // เพิ่มผู้รับเรื่อง
-        function addRecipient() {
-            const name = document.getElementById("recipient-name").value;
-            const email = document.getElementById("recipient-email").value;
-            const department = document.getElementById("recipient-department").value;
-            const role = document.getElementById("recipient-role").value;
-
-            if (name && email && department && role) {
-                recipients.push({ name, email, department, role });  // เพิ่มข้อมูลลงในอาร์เรย์
-                updateRecipientsTable();  // อัปเดตตาราง
-                clearRecipientInputs();  // ล้างช่อง input
-            } else {
-                alert("กรุณากรอกข้อมูลให้ครบถ้วน");
-            }
-        }
 
         // อัปเดตตารางผู้รับเรื่อง
         function updateRecipientsTable() {
@@ -413,134 +406,45 @@
                     <td>${recipient.email}</td>
                     <td>${recipient.department}</td>
                     <td>${recipient.role}</td> <!-- แสดงข้อมูลในช่องใหม่ -->
-                    <td>
-                        <button type="button" onclick="removeRecipient(${index})">ลบ</button>
-                    </td>
                 `;
                 tableBody.appendChild(row);
             });
         }
 
-        // ล้างช่อง input ผู้รับเรื่อง
-        function clearRecipientInputs() {
-            document.getElementById("recipient-name").value = "";
-            document.getElementById("recipient-email").value = "";
-            document.getElementById("recipient-department").value = "";
-            document.getElementById("recipient-role").value = ""; // ล้างช่องใหม่
-        }
-
-        // ส่งคำร้องไปยังหน่วยงาน
+        // อนุมัติข้อร้องเรียน
         document.getElementById("correction-form").addEventListener("submit", async (e) => {
             e.preventDefault();
 
-            // ดึงค่าระดับความรุนแรง
-            const severityLevel = document.querySelector('input[name="severity"]:checked')?.value;
-            if(!severityLevel){
-                Swal.fire({
-                            icon: 'warning',
-                            title: 'กรุณาเลือกระดับความรุนแรง!',
-                            text: 'โปรดเลือกระดับความรุนแรงก่อนส่งเรื่องร้องเรียน',
-                            confirmButtonText: 'ตกลง',
-                        });
-                return;
-            }
-            // ดึงข้อมูลผู้รับเรื่องจากตาราง
-            const recipients = [];
-            const rows = document.querySelectorAll("#recipients-table tbody tr");
-            rows.forEach(row => {
-                const name = row.cells[0].textContent;
-                const email = row.cells[1].textContent;
-                const department = row.cells[2].textContent;
-                const role = row.cells[3].textContent;
-                recipients.push({ name, email, department, role });
+            // Collect all form data
+            const form = e.target;
+            const formData = new FormData(form);
+
+            const response = await fetch(`/admin/complete-complaint/${complaintId}`, {
+                method: "POST",
+                body: formData
             });
-            
-            const correction1 = document.getElementById("correction1").value;
-            const inspectorName1 = document.getElementById("inspector-name1").value;
-            const inspectionDate1 = document.getElementById("inspection-date1").value;
 
-            const correction2 = document.getElementById("correction2").value;
-            const inspectorName2 = document.getElementById("inspector-name2").value;
-            const inspectionDate2 = document.getElementById("inspection-date2").value;
-
-            const correction3 = document.getElementById("correction3").value;
-            const inspectorName3 = document.getElementById("inspector-name3").value;
-            const inspectionDate3 = document.getElementById("inspection-date3").value;
-
-            const correction4 = document.getElementById("correction4").value;
-            const inspectorName4 = document.getElementById("inspector-name4").value;
-            const inspectionDate4 = document.getElementById("inspection-date4").value;
-
-            const correction5 = document.getElementById("correction5").value;
-            const inspectorName5 = document.getElementById("inspector-name5").value;
-            const inspectionDate5 = document.getElementById("inspection-date5").value;
-
-            // สร้าง payload สำหรับส่งไปยัง backend
-            const payload = {
-                severity_level: severityLevel,
-                recipients: recipients, // แปลงเป็น JSON string
-                // add code here
-                correction1: correction1,
-                inspector_name1: inspectorName1,
-                inspection_date1: inspectionDate1,
-                correction2: correction2,
-                inspector_name2: inspectorName2,
-                inspection_date2: inspectionDate2,
-                correction3: correction3,
-                inspector_name3: inspectorName3,
-                inspection_date3: inspectionDate3,
-                correction4: correction4,
-                inspector_name4: inspectorName4,
-                inspection_date4: inspectionDate4,
-                correction5: correction5,
-                inspector_name5: inspectorName5,
-                inspection_date5: inspectionDate5,
-            };
-
-            // ส่งข้อมูลไปยัง backend
-            try {
-                const response = await fetch(`/admin/forward-complaint/${complaintId}`, {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json", // ระบุว่าเราส่งข้อมูลเป็น JSON
-                    },
-                    body: JSON.stringify(payload), // แปลง payload เป็น JSON string
-                });
-
-                if (response.ok) {
-                    Swal.fire({
-                            icon: 'success',
-                            title: 'ส่งเรื่องร้องเรียนเรียบร้อยแล้ว!',
-                            text: 'เราได้รับเรื่องร้องเรียนของคุณแล้ว',
-                            confirmButtonText: 'ตกลง',
-                            timer: 3000, // Automatically close after 3 seconds
-                            timerProgressBar: true,
-                        }).then(() => {
-                            // form.reset(); //reset 
-                            window.location.href = "/admin_complaints"; // ไปยังหน้ารายการคำร้อง
-                        });
-                } else {
-                    const errorData = await response.json();
-                    Swal.fire({
-                            icon: 'error',
-                            title: 'เกิดข้อผิดพลาด!',
-                            text: `เกิดข้อผิดพลาด: ${errorData.detail || "ไม่สามารถส่งข้อมูลได้"}`,
-                            confirmButtonText: 'ตกลง',
-                        });
-                }
-            } catch (error) {
-                console.error("Error submitting form:", error);
+            if (response.ok) {
                 Swal.fire({
-                            icon: 'error',
-                            title: 'เกิดข้อผิดพลาด!',
-                            text: 'เกิดข้อผิดพลาดในการส่งเรื่องร้องเรียน กรุณาลองใหม่อีกครั้ง',
-                            confirmButtonText: 'ตกลง',
-                        });
+                    icon: 'success',
+                    title: 'ส่งเรื่องร้องเรียนเรียบร้อยแล้ว!',
+                    text: 'เราได้รับเรื่องร้องเรียนของคุณแล้ว',
+                    confirmButtonText: 'ตกลง',
+                    timer: 3000, // Automatically close after 3 seconds
+                    timerProgressBar: true,
+                }).then(() => {
+                    // form.reset(); //reset form
+                    window.location.href = "/admin_complaints"; // ไปยังหน้ารายการคำร้อง
+                });
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'เกิดข้อผิดพลาด!',
+                    text: 'เกิดข้อผิดพลาดในการส่งเรื่องร้องเรียน กรุณาลองใหม่อีกครั้ง',
+                    confirmButtonText: 'ตกลง',
+                });
             }
         });
-
-        // โหลดข้อมูลคำร้องเมื่อเปิดหน้า
-        window.onload = loadAdminName;
     </script>
 </body>
 </html>
