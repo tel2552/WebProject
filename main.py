@@ -343,6 +343,10 @@ def get_username(current_user: dict = Depends(get_current_user)):
     #     return JSONResponse(content={"msg": "User not found"}, status_code=404)
     return {"username": current_user["username"]}
 
+@app.get("/admin/get-userrole")
+def get_userrole(current_user: dict = Depends(get_current_user)):
+    return {"role": current_user["role"]}
+
 @app.post("/admin/save-complaint/{id}")
 async def admit_complaint(id: str, payload: ForwardComplaintPayload = Body(...)):
     try:

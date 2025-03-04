@@ -17,41 +17,6 @@
     <title>ระบบรับข้อร้องเรียน</title>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
-        document.addEventListener("DOMContentLoaded", function() { // Ensure DOM is loaded
-            document.getElementById("complaint-form").addEventListener("submit", async (e) => {
-                e.preventDefault();
-
-                // Collect all form data
-                const form = e.target;
-                const formData = new FormData(form);
-
-                const response = await fetch("/submit-complaint", {
-                    method: "POST",
-                    body: formData
-                });
-
-                if (response.ok) {
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'ส่งเรื่องร้องเรียนเรียบร้อยแล้ว!',
-                        text: 'เราได้รับเรื่องร้องเรียนของคุณแล้ว',
-                        confirmButtonText: 'ตกลง',
-                        timer: 3000, // Automatically close after 3 seconds
-                        timerProgressBar: true,
-                    }).then(() => {
-                        form.reset(); //reset form
-                    });
-                } else {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'เกิดข้อผิดพลาด!',
-                        text: 'เกิดข้อผิดพลาดในการส่งเรื่องร้องเรียน กรุณาลองใหม่อีกครั้ง',
-                        confirmButtonText: 'ตกลง',
-                    });
-                }
-            });
-        });
-
         async function logout() {
             try {
                 // ลบ Token จาก localStorage
@@ -91,6 +56,43 @@
                     });
             }
         }
+        
+        document.addEventListener("DOMContentLoaded", function() { // Ensure DOM is loaded
+            document.getElementById("complaint-form").addEventListener("submit", async (e) => {
+                e.preventDefault();
+
+                // Collect all form data
+                const form = e.target;
+                const formData = new FormData(form);
+
+                const response = await fetch("/submit-complaint", {
+                    method: "POST",
+                    body: formData
+                });
+
+                if (response.ok) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'ส่งเรื่องร้องเรียนเรียบร้อยแล้ว!',
+                        text: 'เราได้รับเรื่องร้องเรียนของคุณแล้ว',
+                        confirmButtonText: 'ตกลง',
+                        timer: 3000, // Automatically close after 3 seconds
+                        timerProgressBar: true,
+                    }).then(() => {
+                        form.reset(); //reset form
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'เกิดข้อผิดพลาด!',
+                        text: 'เกิดข้อผิดพลาดในการส่งเรื่องร้องเรียน กรุณาลองใหม่อีกครั้ง',
+                        confirmButtonText: 'ตกลง',
+                    });
+                }
+            });
+        });
+
+        
     </script>
     <link rel="stylesheet" href="/static/style.css">
 </head>
