@@ -53,6 +53,19 @@
             background-color: #218838;
         }
 
+        .btn-save {
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+
+        .btn-save:hover {
+            background-color: #0056b3; /* Slightly darker blue on hover */
+        }
+
         table {
             width: 100%;
             border-collapse: collapse;
@@ -325,8 +338,9 @@
                 <input type="date" id="inspection-date5">
             </div>
         </fieldset>
-            <!-- <button type="submit">บันทึกข้อมูล</button> -->
+            <button type="submit1" class="btn-save">บันทึกข้อมูล</button>
             <button type="submit">เสนออนุมัติ</button>
+            <!-- <button type="submit2">ยกเลิกคำร้อง</button> -->
     </form>
 
     <script>
@@ -379,10 +393,36 @@
             document.getElementById("details").value = complaint.details;
             document.getElementById("department").value = complaint.team;
             document.getElementById("additional-info").value = complaint.additional_info;
+            document.getElementById("correction1").value = complaint.correction1;
+            document.getElementById("correction2").value = complaint.correction2;
+            document.getElementById("correction3").value = complaint.correction3;
+            document.getElementById("correction4").value = complaint.correction4;
+            document.getElementById("correction5").value = complaint.correction5;
+            document.getElementById("inspector-name1").value = complaint.inspector_name1;
+            document.getElementById("inspector-name2").value = complaint.inspector_name2;
+            document.getElementById("inspector-name3").value = complaint.inspector_name3;
+            document.getElementById("inspector-name4").value = complaint.inspector_name4;
+            document.getElementById("inspector-name5").value = complaint.inspector_name5;
+            document.getElementById("inspection-date1").value = complaint.inspection_date1;
+            document.getElementById("inspection-date2").value = complaint.inspection_date2;
+            document.getElementById("inspection-date3").value = complaint.inspection_date3;
+            document.getElementById("inspection-date4").value = complaint.inspection_date4;
+            document.getElementById("inspection-date5").value = complaint.inspection_date5;
+            // Load and display recipients
+            if (complaint.recipients && complaint.recipients.length > 0) {
+              recipients = complaint.recipients; // Update the global recipients array
+              updateRecipientsTable(); // Call the function to update the table
+            }
+            // Pre-select the severity radio button
+            const severityLevel = complaint.severity_level;
+            const severityRadioButton = document.querySelector(`input[name="severity"][value="${severityLevel}"]`);
+            if (severityRadioButton) {
+                severityRadioButton.checked = true;
+            }
         }
         document.addEventListener("DOMContentLoaded", function() {
             loadComplaint();
-            loadusername();
+            loadAdminName();
         });
 
         // เพิ่มผู้รับเรื่อง
@@ -429,19 +469,19 @@
             document.getElementById("recipient-role").value = ""; // ล้างช่องใหม่
         }
 
-        // ส่งคำร้องไปยังหน่วยงาน
-        document.getElementById("correction-form").addEventListener("submit", async (e) => {
-            e.preventDefault();
+        // ส่งคำร้องไปยังหน่วยงาน (submit - เสนออนุมัติ)
+        document.querySelector("button[type='submit']").addEventListener("click", async (e) => {
+            e.preventDefault(); // Prevent default form submission
 
             // ดึงค่าระดับความรุนแรง
             const severityLevel = document.querySelector('input[name="severity"]:checked')?.value;
-            if(!severityLevel){
+            if (!severityLevel) {
                 Swal.fire({
-                            icon: 'warning',
-                            title: 'กรุณาเลือกระดับความรุนแรง!',
-                            text: 'โปรดเลือกระดับความรุนแรงก่อนส่งเรื่องร้องเรียน',
-                            confirmButtonText: 'ตกลง',
-                        });
+                    icon: 'warning',
+                    title: 'กรุณาเลือกระดับความรุนแรง!',
+                    text: 'โปรดเลือกระดับความรุนแรงก่อนส่งเรื่องร้องเรียน',
+                    confirmButtonText: 'ตกลง',
+                });
                 return;
             }
             // ดึงข้อมูลผู้รับเรื่องจากตาราง
@@ -454,7 +494,108 @@
                 const role = row.cells[3].textContent;
                 recipients.push({ name, email, department, role });
             });
-            
+
+            const correction1 = document.getElementById("correction1").value;
+            const inspectorName1 = document.getElementById("inspector-name1").value;
+            const inspectionDate1 = document.getElementById("inspection-date1").value;
+
+            const correction2 = document.getElementById("correction2").value;
+            const inspectorName2 = document.getElementById("inspector-name2").value;
+            const inspectionDate2 = document.getElementById("inspection-date2").value;
+
+            const correction3 = document.getElementById("correction3").value;
+            const inspectorName3 = document.getElementById("inspector-name3").value;
+            const inspectionDate3 = document.getElementById("inspection-date3").value;
+
+            const correction4 = document.getElementById("correction4").value;
+            const inspectorName4 = document.getElementById("inspector-name4").value;
+            const inspectionDate4 = document.getElementById("inspection-date4").value;
+
+            const correction5 = document.getElementById("correction5").value;
+            const inspectorName5 = document.getElementById("inspector-name5").value;
+            const inspectionDate5 = document.getElementById("inspection-date5").value;
+
+            // สร้าง payload สำหรับส่งไปยัง backend
+            const payload = {
+                severity_level: severityLevel,
+                recipients: recipients, // แปลงเป็น JSON string
+                // add code here
+                correction1: correction1,
+                inspector_name1: inspectorName1,
+                inspection_date1: inspectionDate1,
+                correction2: correction2,
+                inspector_name2: inspectorName2,
+                inspection_date2: inspectionDate2,
+                correction3: correction3,
+                inspector_name3: inspectorName3,
+                inspection_date3: inspectionDate3,
+                correction4: correction4,
+                inspector_name4: inspectorName4,
+                inspection_date4: inspectionDate4,
+                correction5: correction5,
+                inspector_name5: inspectorName5,
+                inspection_date5: inspectionDate5,
+                status: "Forwarded", // Set status to "Forwarded" for approval request
+            };
+
+            // ส่งข้อมูลไปยัง backend
+            try {
+                const response = await fetch(`/admin/forward-complaint/${complaintId}`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json", // ระบุว่าเราส่งข้อมูลเป็น JSON
+                    },
+                    body: JSON.stringify(payload), // แปลง payload เป็น JSON string
+                });
+
+                if (response.ok) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'ส่งเรื่องร้องเรียนเพื่ออนุมัติเรียบร้อยแล้ว!',
+                        text: 'เราได้ส่งเรื่องร้องเรียนไปยังผู้มีอำนาจอนุมัติแล้ว',
+                        confirmButtonText: 'ตกลง',
+                        timer: 3000, // Automatically close after 3 seconds
+                        timerProgressBar: true,
+                    }).then(() => {
+                        window.location.href = "/forwardeds"; // ไปยังหน้ารายการคำร้องที่รออนุมัติ
+                    });
+                } else {
+                    const errorData = await response.json();
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'เกิดข้อผิดพลาด!',
+                        text: `เกิดข้อผิดพลาด: ${errorData.detail || "ไม่สามารถส่งข้อมูลได้"}`,
+                        confirmButtonText: 'ตกลง',
+                    });
+                }
+            } catch (error) {
+                console.error("Error submitting form:", error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'เกิดข้อผิดพลาด!',
+                    text: 'เกิดข้อผิดพลาดในการส่งเรื่องร้องเรียน กรุณาลองใหม่อีกครั้ง',
+                    confirmButtonText: 'ตกลง',
+                });
+            }
+        });
+        
+          // ส่งข้อมูลแบบร่างไปยัง backend (submit1 - บันทึกข้อมูล)
+        document.querySelector("button[type='submit1']").addEventListener("click", async (e) => {
+            e.preventDefault(); // Prevent default form submission
+
+            // ดึงค่าระดับความรุนแรง
+            const severityLevel = document.querySelector('input[name="severity"]:checked')?.value;
+             // ดึงข้อมูลผู้รับเรื่องจากตาราง
+             const recipients = [];
+            const rows = document.querySelectorAll("#recipients-table tbody tr");
+            rows.forEach(row => {
+                const name = row.cells[0].textContent;
+                const email = row.cells[1].textContent;
+                const department = row.cells[2].textContent;
+                const role = row.cells[3].textContent;
+                recipients.push({ name, email, department, role });
+            });
+
             const correction1 = document.getElementById("correction1").value;
             const inspectorName1 = document.getElementById("inspector-name1").value;
             const inspectionDate1 = document.getElementById("inspection-date1").value;
@@ -499,7 +640,7 @@
 
             // ส่งข้อมูลไปยัง backend
             try {
-                const response = await fetch(`/admin/forward-complaint/${complaintId}`, {
+                const response = await fetch(`/admin/save-complaint/${complaintId}`, {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json", // ระบุว่าเราส่งข้อมูลเป็น JSON
@@ -509,38 +650,38 @@
 
                 if (response.ok) {
                     Swal.fire({
-                            icon: 'success',
-                            title: 'ส่งเรื่องร้องเรียนเรียบร้อยแล้ว!',
-                            text: 'เราได้รับเรื่องร้องเรียนของคุณแล้ว',
-                            confirmButtonText: 'ตกลง',
-                            timer: 3000, // Automatically close after 3 seconds
-                            timerProgressBar: true,
-                        }).then(() => {
-                            // form.reset(); //reset 
-                            window.location.href = "/admin_complaints"; // ไปยังหน้ารายการคำร้อง
-                        });
+                        icon: 'success',
+                        title: 'บันทึกข้อมูลสำเร็จ!',
+                        text: 'บันทึกข้อมูลเรียบร้อยแล้ว',
+                        confirmButtonText: 'ตกลง',
+                        timer: 3000, // Automatically close after 3 seconds
+                        timerProgressBar: true,
+                    }).then(() => {
+                        form.reset(); //reset form
+                        // window.location.href = "/reports"; // เปลี่ยนเส้นทางไปยังหน้าหลักหลังบันทึกข้อมูล
+                    });
                 } else {
                     const errorData = await response.json();
                     Swal.fire({
-                            icon: 'error',
-                            title: 'เกิดข้อผิดพลาด!',
-                            text: `เกิดข้อผิดพลาด: ${errorData.detail || "ไม่สามารถส่งข้อมูลได้"}`,
-                            confirmButtonText: 'ตกลง',
-                        });
+                        icon: 'error',
+                        title: 'เกิดข้อผิดพลาด!',
+                        text: `เกิดข้อผิดพลาด: ${errorData.detail || "ไม่สามารถบันทึกข้อมูลได้"}`,
+                        confirmButtonText: 'ตกลง',
+                    });
                 }
             } catch (error) {
-                console.error("Error submitting form:", error);
+                console.error("Error saving data:", error);
                 Swal.fire({
-                            icon: 'error',
-                            title: 'เกิดข้อผิดพลาด!',
-                            text: 'เกิดข้อผิดพลาดในการส่งเรื่องร้องเรียน กรุณาลองใหม่อีกครั้ง',
-                            confirmButtonText: 'ตกลง',
-                        });
+                    icon: 'error',
+                    title: 'เกิดข้อผิดพลาด!',
+                    text: 'เกิดข้อผิดพลาดในการบันทึกข้อมูล กรุณาลองใหม่อีกครั้ง',
+                    confirmButtonText: 'ตกลง',
+                });
             }
         });
 
         // โหลดข้อมูลคำร้องเมื่อเปิดหน้า
-        window.onload = loadAdminName;
+        // window.onload = loadAdminName;
     </script>
 </body>
 </html>

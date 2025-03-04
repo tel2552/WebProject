@@ -343,6 +343,69 @@ def get_username(current_user: dict = Depends(get_current_user)):
     #     return JSONResponse(content={"msg": "User not found"}, status_code=404)
     return {"username": current_user["username"]}
 
+@app.post("/admin/save-complaint/{id}")
+async def admit_complaint(id: str, payload: ForwardComplaintPayload = Body(...)):
+    try:
+        # Access the payload data
+        severity_level = payload.severity_level
+        recipients_list = payload.recipients
+        correction1 = payload.correction1
+        inspector_name1 = payload.inspector_name1
+        inspection_date1 = payload.inspection_date1
+        correction2 = payload.correction2
+        inspector_name2 = payload.inspector_name2
+        inspection_date2 = payload.inspection_date2
+        correction3 = payload.correction3
+        inspector_name3 = payload.inspector_name3
+        inspection_date3 = payload.inspection_date3
+        correction4 = payload.correction4
+        inspector_name4 = payload.inspector_name4
+        inspection_date4 = payload.inspection_date4
+        correction5 = payload.correction5
+        inspector_name5 = payload.inspector_name5
+        inspection_date5 = payload.inspection_date5
+
+        update_data = OrderedDict([
+            ("severity_level", severity_level),
+            ("recipients", recipients_list),
+            ("status", "Admit"),
+            ("admit_date", datetime.utcnow()),
+            ("correction1", correction1),
+            ("inspector_name1", inspector_name1),
+            ("inspection_date1", inspection_date1),
+            ("correction2", correction2),
+            ("inspector_name2", inspector_name2),
+            ("inspection_date2", inspection_date2),
+            ("correction3", correction3),
+            ("inspector_name3", inspector_name3),
+            ("inspection_date3", inspection_date3),
+            ("correction4", correction4),
+            ("inspector_name4", inspector_name4),
+            ("inspection_date4", inspection_date4),
+            ("correction5", correction5),
+            ("inspector_name5", inspector_name5),
+            ("inspection_date5", inspection_date5),
+        ])
+
+
+
+        # อัปเดตข้อมูลคำร้องใน MongoDB
+        result = complaints_collection.update_one(
+            {"_id": ObjectId(id)},
+            {
+                "$set": update_data
+            }
+        )
+
+        # ตรวจสอบว่าอัปเดตสำเร็จหรือไม่
+        if result.modified_count == 1:
+            return {"message": "Complaint Forwarded successfully"}
+        else:
+            raise HTTPException(status_code=404, detail="Complaint not found or no changes made")
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.post("/admin/forward-complaint/{id}")
 async def admit_complaint(id: str, payload: ForwardComplaintPayload = Body(...)):
     try:
