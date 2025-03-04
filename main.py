@@ -23,11 +23,11 @@ templates = Jinja2Templates(directory="templates")
 # Models
 # Mapping ระหว่างประเภทข้อร้องเรียนกับอีเมลปลายทาง
 EMAIL_RECIPIENTS = {
-    "ด้านบุคลากร": "telergamer@gmail.com",
-    "การบริการงานวิจัย": "research@example.com",
+    "ด้านบุคลากร": "phubasesri@pim.ac.th",
+    "การบริการงานวิจัย": "nuttawutwon@pim.ac.th",
     "การบริการวิชาการ": "academic@example.com",
     "การบริหารจัดการของ PIM": "management@example.com",
-    "การบริการแก่นักศึกษา": "studentservices@example.com",
+    "การบริการแก่นักศึกษา": "telergamer@gmail.com",
     "อื่นๆ": "other@example.com"
 }
 

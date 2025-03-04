@@ -15,6 +15,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>คำร้องใหม่</title>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -152,15 +153,30 @@
                 });
 
                 if (response.ok) {
-                    alert("Logged out successfully");
-                    window.location.href = "/";  // Redirect ไปหน้า Login
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'ออกจากระบบเรียบร้อยแล้ว',
+                        showConfirmButton: false,
+                        timer: 1500
+                    }).then(()=>{
+                        window.location.href = "/";
+                    })
+
                 } else {
                     const error = await response.json();
-                    alert(`Error: ${error.detail}`);
+                    Swal.fire({
+                        icon: 'error',
+                        title: `Error: ${error.detail}`,
+                        showConfirmButton: true,
+                    })
                 }
             } catch (error) {
                 console.error("Error during logout:", error);
-                alert("Failed to logout");
+                Swal.fire({
+                        icon: 'error',
+                        title: "Failed to logout",
+                        showConfirmButton: true,
+                    })
             }
         }
         
