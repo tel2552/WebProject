@@ -1,3 +1,5 @@
+import os
+import uvicorn
 from fastapi import FastAPI, HTTPException, Depends, Request, Form, Body , Response, status
 from fastapi.responses import HTMLResponse, RedirectResponse , JSONResponse
 from fastapi.templating import Jinja2Templates
@@ -495,3 +497,7 @@ def complete_complaint(id: str):
         return {"message": "Complaint complete successfully"}
     else:
         return {"error": "Failed to complete complaint"}
+
+if __name__ == "__main__":
+    port = int(os.getenv("PORT", 4000))  # ใช้พอร์ตจาก environment หรือ 8000 ถ้าไม่ได้ตั้ง
+    uvicorn.run(app, host="0.0.0.0", port=port)
