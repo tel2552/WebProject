@@ -15,6 +15,7 @@ from bson import ObjectId
 from bson.errors import InvalidId
 from datetime import datetime
 from collections import OrderedDict
+from pymongo.errors import ConnectionFailure
 
 app = FastAPI()
 
@@ -74,29 +75,25 @@ class ForwardComplaintPayload(BaseModel):
     inspection_date5: str
 
 # Routes
-# @app.middleware("http")
-# async def add_head_method(request: Request, call_next):
-#     response: Response = await call_next(request)
-#     if request.method == "HEAD" and request.scope["route"].methods == ["GET"]:
-#         response.body = b""
-#     return response
 
 # Render Login Page
 @app.get("/", response_class=HTMLResponse)
-@app.head("/", response_class=HTMLResponse)
 async def show_login_page(request: Request):
     return templates.TemplateResponse("login.html", {"request": request})
 
 # Handle Login
 @app.post("/login")
 async def login_user(username: str = Form(...), password: str = Form(...)):
-    db_user = users_collection.find_one({"username": username})
-    if not db_user or not verify_password(password, db_user["password"]):
-        raise HTTPException(status_code=400, detail="Incorrect username or password")
-    
-    token = create_access_token(data={"sub": db_user["username"], "role": db_user["role"]}, expires_delta=timedelta(minutes=60))
-    redirect_url = "/admin_complaints" if db_user["role"] in ["admin", "superadmin", "alladmin"] else "/complaint"
-    return JSONResponse(content={"token": token, "redirect_url": redirect_url})
+    try:
+        db_user = users_collection.find_one({"username": username})
+        if not db_user or not verify_password(password, db_user["password"]):
+            raise HTTPException(status_code=400, detail="Incorrect username or password")
+
+        token = create_access_token(data={"sub": db_user["username"], "role": db_user["role"]}, expires_delta=timedelta(minutes=60))
+        redirect_url = "/admin_complaints" if db_user["role"] in ["admin", "superadmin", "alladmin"] else "/complaint"
+        return JSONResponse(content={"token": token, "redirect_url": redirect_url})
+    except ConnectionFailure as e:
+        raise HTTPException(status_code=500, detail="Database connection failed")
 
 # Render Register Page
 @app.get("/register", response_class=HTMLResponse)
