@@ -7,7 +7,3 @@ python-dotenv==1.0.1
 python_jose==3.3.0
 bcrypt==3.2.2
 uvicorn==0.15.0
-email-validator
-jinja2
-python-multipart
-bson
