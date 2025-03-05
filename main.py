@@ -506,5 +506,5 @@ def complete_complaint(id: str):
         return {"error": "Failed to complete complaint"}
 
 if __name__ == "__main__":
-    port = int(os.getenv("PORT", 4000))  # ใช้พอร์ตจาก environment หรือ 8000 ถ้าไม่ได้ตั้ง
-    uvicorn.run(app, host="0.0.0.0", port=port)
+    port = int(os.getenv("PORT", 4000))  # Get port from environment variable, or default to 8000
+    uvicorn.run(app, host="0.0.0.0", port=port)  # Set host to 0.0.0.0
