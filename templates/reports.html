@@ -2,7 +2,7 @@
 <html lang="en">
     <style>
         body  {
-            background-image: url("/static/bg_pim.jpg");
+            background-image: url("/static/IMG_4022.jpg");
             background-color: #cccccc;
             background-position: center; /* Center the image */
             background-repeat: no-repeat; /* Do not repeat the image */
@@ -115,13 +115,18 @@
         <a href="/admin_complaints">คำร้องใหม่</a>
         <a href="/reports">คำร้องของหน่วยงาน</a>
         <a href="/forwardeds">อนุมัติคำร้อง</a>
-        <a href="/admin_users">รายงานสรุป</a>
+        <a href="/admin_download">รายงานสรุป</a>
         <a href="#" onclick="logout()">ออกจากระบบ</a>
     </div>
 
     <!-- Content -->
     <div class="content">
         <h1>คำร้องของหน่วยงาน</h1>
+        <label for="sort-options">เรียงลำดับ:</label>
+        <select id="sort-options" onchange="sortTable()">
+            <option value="newest">วันที่ใหม่ → เก่า</option>
+            <option value="oldest">วันที่เก่า → ใหม่</option>
+        </select>
         <table>
             <thead>
                 <tr>
@@ -204,7 +209,7 @@
                                 ${complaint.status}
                             </td>
                             <td>
-                                <form action="/admin/admit-complaint/${complaint._id}" method="get">
+                                <form action="/admin/forward-complaint/${complaint._id}" method="get">
                                     <button type="submit" class="btn btn-success">Update</button>
                                 </form>
                             </td>
@@ -213,9 +218,27 @@
                         tableBody.appendChild(row);
                     }
                 });
+                // เรียงตารางตามค่าที่เลือกไว้เมื่อโหลดข้อมูลเสร็จ
+                sortTable();
             } catch (error) {
                 console.error("Failed to fetch complaints:", error);
             }
+        }
+        
+        async function sortTable() {
+            const table = document.getElementById("complaints-table");
+            const rows = Array.from(table.rows);
+            const sortOrder = document.getElementById("sort-options").value;
+
+            rows.sort((a, b) => {
+                const dateA = new Date(a.cells[3].textContent); // คอลัมน์วันที่
+                const dateB = new Date(b.cells[3].textContent);
+
+                return sortOrder === "newest" ? dateB - dateA : dateA - dateB;
+            });
+
+            table.innerHTML = ""; // ล้างตารางก่อนแสดงผลใหม่
+            rows.forEach(row => table.appendChild(row));
         }
 
         fetchAdmitComplaints();

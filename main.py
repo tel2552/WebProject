@@ -1,11 +1,11 @@
-from fastapi import FastAPI, HTTPException, Depends, Request, Form, Body , Response
+from fastapi import FastAPI, HTTPException, Depends, Request, Form, Body , Response, status
 from fastapi.responses import HTMLResponse, RedirectResponse , JSONResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from typing import List, Dict, Any
 from datetime import timedelta
-from database import users_collection, complaints_collection
+from database import users_collection, complaints_collection, email_recipients_collection, bins_collection
 from auth import get_password_hash, verify_password, create_access_token
 from email_service import send_email
 from auth import get_current_user
@@ -86,7 +86,7 @@ async def login_user(username: str = Form(...), password: str = Form(...)):
         raise HTTPException(status_code=400, detail="Incorrect username or password")
     
     token = create_access_token(data={"sub": db_user["username"], "role": db_user["role"]}, expires_delta=timedelta(minutes=60))
-    redirect_url = "/admin_complaints" if db_user["role"] in ["admin", "superadmin"] else "/complaint"
+    redirect_url = "/admin_complaints" if db_user["role"] in ["admin", "superadmin", "alladmin"] else "/complaint"
     return JSONResponse(content={"token": token, "redirect_url": redirect_url})
 
 # Render Register Page
@@ -96,7 +96,7 @@ async def show_register_page(request: Request):
 
 # Handle Register
 @app.post("/register")
-def register_user(username: str = Form(...), password: str = Form(...), role: str = Form(...)):
+def register_user(username: str = Form(...), password: str = Form(...)):
     existing_user = users_collection.find_one({"username": username})
     if existing_user:
         return JSONResponse(status_code=400, content={"detail": "Username already exists"})
@@ -105,7 +105,7 @@ def register_user(username: str = Form(...), password: str = Form(...), role: st
     users_collection.insert_one({
         "username": username,
         "password": hashed_password,
-        "role": role
+        "role": 'user'
     })
     return RedirectResponse(url="/", status_code=303)
 
@@ -192,9 +192,9 @@ async def show_reports_page(request: Request):
 async def show_forwardeds_page(request: Request):
     return templates.TemplateResponse("forwardeds.html", {"request": request})
 
-@app.get("/admin_users", response_class=HTMLResponse)
-async def show_admin_users_page(request: Request):
-    return templates.TemplateResponse("admin_users.html", {"request": request})
+@app.get("/admin_download", response_class=HTMLResponse)
+async def show_admin_download_page(request: Request):
+    return templates.TemplateResponse("admin_download.html", {"request": request})
 
 # Handle Logout
 @app.get("/logout")
@@ -238,6 +238,26 @@ async def get_completed_complaints():
     return complaints_list
 
 # ส่งคำร้องไปยังหน่วยงาน
+@app.get("/admin/admit-complaint/{id}", response_class=HTMLResponse)
+async def admit_complaint(id: str, request: Request):  # เพิ่ม `request: Request`
+    try:
+        # ตรวจสอบว่า ID ถูกต้อง
+        username = users_collection.find_one({"username": ObjectId(id)})
+        complaint = complaints_collection.find_one({"_id": ObjectId(id)})
+        if not complaint:
+            raise HTTPException(status_code=404, detail="Complaint not found")
+        
+        # ส่งข้อมูลไปยัง admin_forward_complaint.html
+        return templates.TemplateResponse("admin_admit_complaint.html",{
+            "request": request,
+            "complaint": complaint,
+            "admin_name": username
+        }  # ใช้ `request` จากพารามิเตอร์
+        )
+    except InvalidId:
+        raise HTTPException(status_code=400, detail=f"Invalid complaint ID: {id}")
+
+# ส่งคำร้องไปยังหน้าอนุมัติของผู้บริหาร
 @app.get("/admin/forward-complaint/{id}", response_class=HTMLResponse)
 async def forward_complaint(id: str, request: Request):  # เพิ่ม `request: Request`
     try:
@@ -249,25 +269,6 @@ async def forward_complaint(id: str, request: Request):  # เพิ่ม `requ
         
         # ส่งข้อมูลไปยัง admin_forward_complaint.html
         return templates.TemplateResponse("admin_forward_complaint.html",{
-            "request": request,
-            "complaint": complaint,
-            "admin_name": username
-        }  # ใช้ `request` จากพารามิเตอร์
-        )
-    except InvalidId:
-        raise HTTPException(status_code=400, detail=f"Invalid complaint ID: {id}")
-
-@app.get("/admin/admit-complaint/{id}", response_class=HTMLResponse)
-async def admit_complaint(id: str, request: Request):  # เพิ่ม `request: Request`
-    try:
-        # ตรวจสอบว่า ID ถูกต้อง
-        username = users_collection.find_one({"username": ObjectId(id)})
-        complaint = complaints_collection.find_one({"_id": ObjectId(id)})
-        if not complaint:
-            raise HTTPException(status_code=404, detail="Complaint not found")
-        
-        # ส่งข้อมูลไปยัง admin_admit_complaint.html
-        return templates.TemplateResponse("admin_admit_complaint.html",{
             "request": request,
             "complaint": complaint,
             "admin_name": username
@@ -293,11 +294,15 @@ async def complete_complaint(id: str, request: Request):  # เพิ่ม `req
         }  # ใช้ `request` จากพารามิเตอร์
         )
     except InvalidId:
-        raise HTTPException(status_code=400, detail=f"Invalid complaint ID: {id}")
+        raise HTTPException(status_code=400, detail=f"Invalid complaint ID: {id}") 
 
 @app.post("/admin/admit-complaint/{id}")
 def resolve_complaint(id: str, department: str = Form(...), additional_info: str = Form(...)):
-    # อัปเดตสถานะเป็น Resolved ใน MongoDB
+
+    if not additional_info:
+        additional_info = '-'
+
+    # อัปเดตสถานะเป็น Admit ใน MongoDB
     result = complaints_collection.update_one(
         {"_id": ObjectId(id)},
         {

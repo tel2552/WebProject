@@ -1,40 +1,43 @@
 <!DOCTYPE html>
 <html lang="en">
 <style>
-    body  {
-        background-image: url("/static/bg_pim.jpg");
+    body {
+        background-image: url("/static/IMG_4022.jpg");
         background-color: #cccccc;
-        background-position: center; /* Center the image */
-        background-repeat: no-repeat; /* Do not repeat the image */
+        background-position: center;
+        background-repeat: no-repeat;
         -moz-background-size: 100% 100%;
         -webkit-background-size: 100% 100%;
         background-size: 100% 100%;
     }
-    </style>
+</style>
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>สมัครสมาชิก</title>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <link rel="stylesheet" href="/static/style.css">
 </head>
+
 <body>
     <div class="container">
         <h1>สมัครสมาชิก</h1>
-        <form action="/register" method="POST">
+        <form action="/register" method="POST" id="registerForm">
             <label for="username">ชื่อผู้ใช้งาน:</label>
             <input type="text" id="username" name="username" required>
-            
+
             <label for="password">รหัสผ่าน:</label>
             <input type="password" id="password" name="password" required>
-            
-            <label for="role">Role:</label>
+
+            <!-- <label for="role">Role:</label>
             <select id="role" name="role" required>
                 <option value="user">User</option>
                 <option value="admin">Adminหน่วยงาน</option>
                 <option value="superadmin">ผู้บริหารหน่วยงาน</option>
-                <!-- <option value="all_admin">AllAdmin</option> -->
-            </select><br><br>
-            
+                <option value="all_admin">AllAdmin</option>
+            </select><br><br> -->
+
             <button type="submit">สมัครสมาชิก</button>
         </form>
         <p>กลับไปหน้า <a href="/">เข้าสู่ระบบ</a></p>
@@ -43,23 +46,36 @@
         document.getElementById('registerForm').addEventListener('submit', async function(event) {
             event.preventDefault();
             const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            const formData = new FormData();
+            formData.append('username', username);
+            formData.append('password', password);
 
             const response = await fetch('/register', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ username: username })
+                body: formData
             });
 
-            const result = await response.json();
-
-            if (response.status === 400) {
-                alert(result.detail);
+            if (response.ok) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'สมัครสมาชิกสำเร็จ!',
+                    showConfirmButton: false,
+                    timer: 3000,
+                }).then(() => {
+                    window.location.href = "/";
+                });
             } else {
-                alert(result.message);
+                const error = await response.json();
+                Swal.fire({
+                    icon: 'error',
+                    title: `Error: ${error.detail}`,
+                    showConfirmButton: true,
+                });
             }
         });
     </script>
 </body>
+
 </html>

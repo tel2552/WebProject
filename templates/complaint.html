@@ -2,13 +2,24 @@
 <html lang="en">
     <style>
         body  {
-            background-image: url("/static/bg_pim.jpg");
+            background-image: url("/static/IMG_4022.jpg");
             background-color: #cccccc;
             background-position: center; /* Center the image */
             background-repeat: no-repeat; /* Do not repeat the image */
             -moz-background-size: 100% 100%;
             -webkit-background-size: 100% 100%;
             background-size: 100% 100%;
+        }
+        /* Add style for details hidden */
+        .hidden {
+            visibility: hidden;
+            height: 0; /* Prevent white space */
+            overflow: hidden;
+        }
+        .visible {
+            visibility: visible;
+            height: auto;
+            overflow: visible;
         }
         </style>
 <head>
@@ -80,6 +91,8 @@
                         timerProgressBar: true,
                     }).then(() => {
                         form.reset(); //reset form
+                        // แสดงหรือซ่อน textarea ตามการเลือก
+                        toggleDetailsTextArea();
                     });
                 } else {
                     Swal.fire({
@@ -90,7 +103,31 @@
                     });
                 }
             });
+            // แสดงหรือซ่อน textarea ตามการเลือก
+            toggleDetailsTextArea();
+             // Add event listener to the select element
+            document.querySelector('select[name="team"]').addEventListener('change', toggleDetailsTextArea);
         });
+
+        function toggleDetailsTextArea() {
+            const teamSelect = document.querySelector('select[name="team"]');
+            const detailsLabel = document.querySelector('label[for="details"]');
+            const detailsTextArea = document.getElementById('details');
+
+            if (teamSelect.value === "ด้านบุคลากร") {
+                detailsLabel.classList.remove('visible');
+                detailsLabel.classList.add('hidden');
+                detailsTextArea.classList.remove('visible');
+                detailsTextArea.classList.add('hidden');
+                detailsTextArea.required = false;
+            } else {
+                detailsLabel.classList.remove('hidden');
+                detailsLabel.classList.add('visible');
+                detailsTextArea.classList.remove('hidden');
+                detailsTextArea.classList.add('visible');
+                detailsTextArea.required = true;
+            }
+        }
 
         
     </script>
@@ -130,8 +167,8 @@
             <label>กรณีเลือก "อื่นๆ" โปรดระบุ:</label>
             <input type="text" name="otherType"><br>
         
-            <label for="details">*รายละเอียดข้อร้องเรียน:</label><br>
-            <textarea id="details" name="details" rows="4" cols="50" required></textarea><br><br>
+            <label for="details" class="visible">*รายละเอียดข้อร้องเรียน:</label><br>
+            <textarea id="details" name="details" rows="4" cols="50" required class="visible"></textarea><br><br>
         
             <button type="submit">ส่งข้อร้องเรียน</button>
             <!-- ปุ่ม Logout -->
