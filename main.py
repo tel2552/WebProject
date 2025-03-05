@@ -74,9 +74,16 @@ class ForwardComplaintPayload(BaseModel):
     inspection_date5: str
 
 # Routes
+# @app.middleware("http")
+# async def add_head_method(request: Request, call_next):
+#     response: Response = await call_next(request)
+#     if request.method == "HEAD" and request.scope["route"].methods == ["GET"]:
+#         response.body = b""
+#     return response
 
 # Render Login Page
 @app.get("/", response_class=HTMLResponse)
+@app.head("/", response_class=HTMLResponse)
 async def show_login_page(request: Request):
     return templates.TemplateResponse("login.html", {"request": request})
 
