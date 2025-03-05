@@ -11,4 +11,3 @@ email-validator
 jinja2
 python-multipart
 bson
-smtplib
