@@ -120,6 +120,7 @@
         <a href="/reports">คำร้องของหน่วยงาน</a>
         <a href="/forwardeds">อนุมัติคำร้อง</a>
         <a href="/admin_download">รายงานสรุป</a>
+        <a href="/cancelled_complaints">คำร้องที่ยกเลิก</a>
         <a href="#" onclick="logout()">ออกจากระบบ</a>
     </div>
 
@@ -197,12 +198,17 @@
                 const tableBody = document.getElementById("complaints-table");
                 tableBody.innerHTML = ""; // Clear existing rows
 
-                // Fetch user role
+                // Fetch user role and team
                 const userRole = await getUserRole();
+                const userTeam = await getUserTeam();
 
                 complaints.forEach(complaint => {
                     // แสดงเฉพาะคำร้องที่มีสถานะเป็น "Forwarded"
                     if (complaint.status === "Forwarded") {
+                        if (userRole === "admin" && complaint.team !== userTeam) {
+                            return; // Skip to the next complaint
+                        }
+
                         const row = document.createElement("tr");
 
                         let approveButton = '';
@@ -265,6 +271,34 @@
                 }
             } catch (error) {
                 console.error('Error fetching user role:', error);
+                return null;
+            }
+        }
+
+        async function getUserTeam() {
+            try {
+                const token = localStorage.getItem('access_token');
+                if (!token) {
+                    console.error('No access token found.');
+                    return null;
+                }
+
+                const response = await fetch('/admin/get-userteam', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    return data.team;
+                } else {
+                    console.error('Failed to fetch user team:', response.statusText);
+                    return null;
+                }
+            } catch (error) {
+                console.error('Error fetching user team:', error);
                 return null;
             }
         }

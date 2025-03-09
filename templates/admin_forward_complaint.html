@@ -351,6 +351,10 @@
                 <input type="date" id="inspection-date5">
             </div>
         </fieldset>
+        <fieldset class="correction-section">
+            <label>ข้อแนะนำ/เสนอแนะ จากผู้อนุมัติ:</label>
+            <div id="approver-recommendation-display"></div>
+        </fieldset>
             <button type="submit1" class="btn-save">บันทึกข้อมูล</button>
             <button type="submit">เสนออนุมัติ</button>
             <button type="submit2" class="btn-delete">ยกเลิกคำร้อง</button>
@@ -406,16 +410,40 @@
             document.getElementById("details").value = complaint.details;
             document.getElementById("department").value = complaint.team;
             document.getElementById("additional-info").value = complaint.additional_info;
-            document.getElementById("correction1").value = complaint.correction1;
-            document.getElementById("correction2").value = complaint.correction2;
-            document.getElementById("correction3").value = complaint.correction3;
-            document.getElementById("correction4").value = complaint.correction4;
-            document.getElementById("correction5").value = complaint.correction5;
-            document.getElementById("inspector-name1").value = complaint.inspector_name1;
-            document.getElementById("inspector-name2").value = complaint.inspector_name2;
-            document.getElementById("inspector-name3").value = complaint.inspector_name3;
-            document.getElementById("inspector-name4").value = complaint.inspector_name4;
-            document.getElementById("inspector-name5").value = complaint.inspector_name5;
+            // Function to set correction field value or placeholder
+            function setCorrectionField(fieldId, value) {
+                const field = document.getElementById(fieldId);
+                if (value === undefined || value === null || value === '') {
+                    field.value = ""; // Clear existing value
+                    // Set the placeholder text to "โปรดกรอกรายละเอียด"
+                    field.placeholder = "โปรดกรอกรายละเอียด";
+                } else {
+                    field.value = value;
+                    field.placeholder = ""; // clear placeholder
+                }
+            }
+            setCorrectionField("correction1", complaint.correction1);
+            setCorrectionField("correction2", complaint.correction2);
+            setCorrectionField("correction3", complaint.correction3);
+            setCorrectionField("correction4", complaint.correction4);
+            setCorrectionField("correction5", complaint.correction5);
+            setCorrectionField("inspector-name1", complaint.inspector_name1);
+            setCorrectionField("inspector-name2", complaint.inspector_name2);
+            setCorrectionField("inspector-name3", complaint.inspector_name3);
+            setCorrectionField("inspector-name4", complaint.inspector_name4);
+            setCorrectionField("inspector-name5", complaint.inspector_name5);
+
+
+            // document.getElementById("correction1").value = complaint.correction1;
+            // document.getElementById("correction2").value = complaint.correction2;
+            // document.getElementById("correction3").value = complaint.correction3;
+            // document.getElementById("correction4").value = complaint.correction4;
+            // document.getElementById("correction5").value = complaint.correction5;
+            // document.getElementById("inspector-name1").value = complaint.inspector_name1;
+            // document.getElementById("inspector-name2").value = complaint.inspector_name2;
+            // document.getElementById("inspector-name3").value = complaint.inspector_name3;
+            // document.getElementById("inspector-name4").value = complaint.inspector_name4;
+            // document.getElementById("inspector-name5").value = complaint.inspector_name5;
             document.getElementById("inspection-date1").value = complaint.inspection_date1;
             document.getElementById("inspection-date2").value = complaint.inspection_date2;
             document.getElementById("inspection-date3").value = complaint.inspection_date3;
@@ -431,6 +459,13 @@
             const severityRadioButton = document.querySelector(`input[name="severity"][value="${severityLevel}"]`);
             if (severityRadioButton) {
                 severityRadioButton.checked = true;
+            }
+            // Display approver recommendation if it exists
+            const recommendationDisplay = document.getElementById('approver-recommendation-display');
+            if (complaint.approver_recommendation) {
+                recommendationDisplay.textContent = complaint.approver_recommendation;
+            } else {
+                recommendationDisplay.textContent = "ไม่มีคำแนะนำ"; // or leave it empty
             }
         }
         document.addEventListener("DOMContentLoaded", function() {
@@ -717,6 +752,82 @@
                     confirmButtonText: 'ตกลง',
                 });
             }
+        });
+
+        // ลบผู้รับเรื่อง
+        function removeRecipient(index) {
+            recipients.splice(index, 1);  // ลบข้อมูลออกจากอาร์เรย์
+            updateRecipientsTable();  // อัปเดตตาราง
+        }
+
+        // ยกเลิกคำร้อง
+        document.querySelector("button[type='submit2']").addEventListener("click", async (e) => {
+            e.preventDefault(); // Prevent default form submission
+
+            Swal.fire({
+                title: 'เหตุผลในการยกเลิกคำร้อง',
+                input: 'textarea',
+                inputPlaceholder: 'กรุณาระบุเหตุผล',
+                inputAttributes: {
+                    'aria-label': 'กรุณาระบุเหตุผล'
+                },
+                showCancelButton: true,
+                confirmButtonText: 'ยืนยัน',
+                cancelButtonText: 'ยกเลิก',
+            }).then(async (result) => {
+                if (result.isConfirmed) {
+                    const cancellationReason = result.value;
+                    // const approverRecommendation = document.getElementById('approver-recommendation').value;
+                    if (!cancellationReason.trim()) {
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'กรุณาระบุเหตุผล!',
+                            text: 'โปรดระบุเหตุผลในการยกเลิกคำร้อง',
+                            confirmButtonText: 'ตกลง',
+                        });
+                        return; // Exit if no reason provided
+                    }
+                    const approverRecommendation = document.getElementById('approver-recommendation-display').textContent;
+                    try {
+                        const response = await fetch(`/admin/cancel-complaint/${complaintId}`, {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/x-www-form-urlencoded",
+                            },
+                            body: `cancellation_reason=${encodeURIComponent(cancellationReason)}&approver_recommendation=${encodeURIComponent(approverRecommendation)}`,// send recommendation
+                        });
+
+                        if (response.ok) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'ยกเลิกคำร้องสำเร็จ!',
+                                text: 'คำร้องถูกยกเลิกแล้ว',
+                                confirmButtonText: 'ตกลง',
+                                timer: 3000,
+                                timerProgressBar: true,
+                            }).then(() => {
+                                window.location.href = "/cancelled_complaints"; // Redirect to cancelled complaints page
+                            });
+                        } else {
+                            const errorData = await response.json();
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'เกิดข้อผิดพลาด!',
+                                text: `เกิดข้อผิดพลาด: ${errorData.detail || "ไม่สามารถยกเลิกคำร้องได้"}`,
+                                confirmButtonText: 'ตกลง',
+                            });
+                        }
+                    } catch (error) {
+                        console.error("Error cancelling complaint:", error);
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'เกิดข้อผิดพลาด!',
+                            text: 'เกิดข้อผิดพลาดในการยกเลิกคำร้อง กรุณาลองใหม่อีกครั้ง',
+                            confirmButtonText: 'ตกลง',
+                        });
+                    }
+                }
+            });
         });
 
         // โหลดข้อมูลคำร้องเมื่อเปิดหน้า

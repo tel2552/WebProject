@@ -116,11 +116,19 @@
         <textarea id="details" rows="5" readonly></textarea>
 
         <label>หน่วยงานสำหรับจัดการ:</label>
-        <select id="department">
+        <!-- <select id="department">
             <option value="ฝ่ายบุคลากร">ฝ่ายบุคลากร</option>
             <option value="ฝ่ายวิจัย">ฝ่ายวิจัย</option>
             <option value="ฝ่ายวิชาการ">ฝ่ายวิชาการ</option>
             <option value="ฝ่ายบริการนักศึกษา">ฝ่ายบริการนักศึกษา</option>
+        </select> -->
+        <select name="team" id="department" required>
+            <option value="ด้านบุคลากร">ด้านบุคลากร</option>
+            <option value="การบริการงานวิจัย">การบริการงานวิจัย</option>
+            <option value="การบริการวิชาการ">การบริการวิชาการ</option>
+            <option value="การบริหารจัดการของ PIM">การบริหารจัดการของ PIM</option>
+            <option value="การบริการแก่นักศึกษา">การบริการแก่นักศึกษา</option>
+            <option value="อื่นๆ">อื่นๆ</option>
         </select>
 
         <label>ข้อมูลเพิ่มเติม (ถ้ามี):</label>

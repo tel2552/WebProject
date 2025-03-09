@@ -44,7 +44,7 @@ def get_current_user(token: str = Depends(oauth2_scheme)):
         raise credentials_exception
 
     try:
-        user = users_collection.find_one({"username": username},{"_id": 0, "username": 1, "role": 1}) #<-- THIS LINE CHANGED
+        user = users_collection.find_one({"username": username},{"_id": 0, "username": 1, "role": 1, "team": 1})
         if user is None:
             print(f"User not found in database: {username}")
             raise credentials_exception

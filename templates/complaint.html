@@ -71,30 +71,56 @@
         document.addEventListener("DOMContentLoaded", function() { // Ensure DOM is loaded
             document.getElementById("complaint-form").addEventListener("submit", async (e) => {
                 e.preventDefault();
+                
+                // Show loading indicator
+                Swal.fire({
+                    title: 'กำลังส่งเรื่องร้องเรียน...',
+                    html: 'กรุณารอสักครู่',
+                    allowEscapeKey: false,
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    },
+                });
 
                 // Collect all form data
                 const form = e.target;
                 const formData = new FormData(form);
 
+                // Add the "otherType" to details if necessary
+                const otherType = formData.get("otherType");
+                const selectedTeam = formData.get("team");
+                let details = formData.get("details") || ""; // Get existing details or initialize an empty string
+
+                if (selectedTeam === "อื่นๆ" && otherType.trim() !== "") {
+                    details += `\n(ประเภทอื่นๆ: ${otherType})`; // Add otherType to details
+                    formData.set("details", details); // Update the formData with the new details
+                }
+
+            try {
                 const response = await fetch("/submit-complaint", {
                     method: "POST",
                     body: formData
                 });
 
                 if (response.ok) {
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'ส่งเรื่องร้องเรียนเรียบร้อยแล้ว!',
-                        text: 'เราได้รับเรื่องร้องเรียนของคุณแล้ว',
-                        confirmButtonText: 'ตกลง',
-                        timer: 3000, // Automatically close after 3 seconds
-                        timerProgressBar: true,
-                    }).then(() => {
-                        form.reset(); //reset form
-                        // แสดงหรือซ่อน textarea ตามการเลือก
-                        toggleDetailsTextArea();
-                    });
-                } else {
+                        // Close the loading indicator
+                        Swal.close();
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'ส่งเรื่องร้องเรียนเรียบร้อยแล้ว!',
+                            text: 'เราได้รับเรื่องร้องเรียนของคุณแล้ว',
+                            confirmButtonText: 'ตกลง',
+                            timer: 3000, // Automatically close after 3 seconds
+                            timerProgressBar: true,
+                        }).then(() => {
+                            form.reset(); //reset form
+                            // แสดงหรือซ่อน textarea ตามการเลือก
+                            toggleDetailsTextArea();
+                        });
+                    } else {
+                        // Close the loading indicator
+                    Swal.close();
                     Swal.fire({
                         icon: 'error',
                         title: 'เกิดข้อผิดพลาด!',
@@ -102,17 +128,28 @@
                         confirmButtonText: 'ตกลง',
                     });
                 }
+            } catch (error) {
+                        // Close the loading indicator
+                        Swal.close();
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'เกิดข้อผิดพลาด!',
+                            text: 'เกิดข้อผิดพลาดในการส่งเรื่องร้องเรียน กรุณาลองใหม่อีกครั้ง',
+                            confirmButtonText: 'ตกลง',
+                        });
+                    }
+                });
+                // แสดงหรือซ่อน textarea ตามการเลือก
+                toggleDetailsTextArea();
+                // Add event listener to the select element
+                document.querySelector('select[name="team"]').addEventListener('change', toggleDetailsTextArea);
             });
-            // แสดงหรือซ่อน textarea ตามการเลือก
-            toggleDetailsTextArea();
-             // Add event listener to the select element
-            document.querySelector('select[name="team"]').addEventListener('change', toggleDetailsTextArea);
-        });
 
         function toggleDetailsTextArea() {
             const teamSelect = document.querySelector('select[name="team"]');
             const detailsLabel = document.querySelector('label[for="details"]');
             const detailsTextArea = document.getElementById('details');
+            const otherTypeInput = document.querySelector('input[name="otherType"]');
 
             if (teamSelect.value === "ด้านบุคลากร") {
                 detailsLabel.classList.remove('visible');
@@ -120,12 +157,15 @@
                 detailsTextArea.classList.remove('visible');
                 detailsTextArea.classList.add('hidden');
                 detailsTextArea.required = false;
+                otherTypeInput.disabled = true; // Disable the "otherType" input
+                otherTypeInput.value = ""; //clear data
             } else {
                 detailsLabel.classList.remove('hidden');
                 detailsLabel.classList.add('visible');
                 detailsTextArea.classList.remove('hidden');
                 detailsTextArea.classList.add('visible');
                 detailsTextArea.required = true;
+                otherTypeInput.disabled = teamSelect.value !== "อื่นๆ"; // Enable if "อื่นๆ" is selected, otherwise disable
             }
         }
 
@@ -165,7 +205,7 @@
             </select><br>
             
             <label>กรณีเลือก "อื่นๆ" โปรดระบุ:</label>
-            <input type="text" name="otherType"><br>
+            <input type="text" name="otherType" disabled><br>
         
             <label for="details" class="visible">*รายละเอียดข้อร้องเรียน:</label><br>
             <textarea id="details" name="details" rows="4" cols="50" required class="visible"></textarea><br><br>

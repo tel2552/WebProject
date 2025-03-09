@@ -82,6 +82,20 @@
         .add-recipient-btn:hover {
             background-color: #0056b3;
         }
+
+        .btn-delete {
+            background-color: #ff0000;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+
+        .btn-delete:hover {
+            background-color: #b30c00; 
+        }
+
         .severity-options {
             display: flex;
             flex-direction: row;
@@ -310,7 +324,12 @@
                 <input type="date" id="inspection-date5" readonly>
             </div>
         </fieldset>
+    <fieldset class="correction-section">
+        <label for="approver-recommendation">ข้อแนะนำ/เสนอแนะ จากผู้อนุมัติ:</label>
+        <textarea id="approver-recommendation" name="approver_recommendation" rows="3"></textarea>
+    </fieldset>
     <button type="submit">อนุมัติข้อร้องเรียน</button>
+    <button type="button" id="undo-button" class="btn-delete">ยกเลิก</button>
     </form>
     <script>
         // ดึงข้อมูลคำร้องจาก URL (เช่น /forward-complaint/{id})
@@ -418,7 +437,7 @@
             // Collect all form data
             const form = e.target;
             const formData = new FormData(form);
-
+            const approverRecommendation = document.getElementById('approver-recommendation').value;
             const response = await fetch(`/admin/complete-complaint/${complaintId}`, {
                 method: "POST",
                 body: formData
@@ -443,6 +462,48 @@
                     text: 'เกิดข้อผิดพลาดในการส่งเรื่องร้องเรียน กรุณาลองใหม่อีกครั้ง',
                     confirmButtonText: 'ตกลง',
                 });
+            }
+        });
+
+        // ยกเลิกอนุมัติข้อร้องเรียน
+        document.getElementById("undo-button").addEventListener("click", async (e) => {
+            e.preventDefault();
+            const approverRecommendation = document.getElementById('approver-recommendation').value;
+            try {
+                const response = await fetch(`/admin/undo-cancellation/${complaintId}`, { //Change this from /admin/undo-complaint/ to /admin/undo-cancellation/
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/x-www-form-urlencoded",
+                    },
+                    body: `approver_recommendation=${encodeURIComponent(approverRecommendation)}`,
+                });
+
+                if (response.ok) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'ปัดตกคำร้องเรียบร้อยแล้ว!',
+                        showConfirmButton: false,
+                        timer: 1500,
+                        timerProgressBar: true,
+                    }).then(() => {
+                        window.location.href = "/forwardeds"; // Redirect to forwardeds page
+                    });
+                } else {
+                    const error = await response.json();
+                    Swal.fire({
+                        icon: 'error',
+                        title: `เกิดข้อผิดพลาด: ${error.detail}`,
+                        showConfirmButton: true,
+                    })
+                    console.error("Failed to undo cancellation:", error);
+                }
+            } catch (error) {
+                Swal.fire({
+                    icon: 'error',
+                    title: `Failed to undo cancellation`,
+                    showConfirmButton: true,
+                })
+                console.error("Error during undo cancellation:", error);
             }
         });
     </script>

@@ -1,19 +1,19 @@
 import os
 import uvicorn
-from fastapi import FastAPI, HTTPException, Depends, Request, Form, Body , Response, status
-from fastapi.responses import HTMLResponse, RedirectResponse , JSONResponse
+from fastapi import FastAPI, HTTPException, Depends, Request, Form, Body, Response, status
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from typing import List, Dict, Any
-from datetime import timedelta
+from datetime import timedelta, datetime, date
 from database import users_collection, complaints_collection, email_recipients_collection, bins_collection
 from auth import get_password_hash, verify_password, create_access_token
 from email_service import send_email
+from delete_service import start_scheduler, delete_old_cancelled_complaints
 from auth import get_current_user
 from bson import ObjectId
 from bson.errors import InvalidId
-from datetime import datetime
 from collections import OrderedDict
 from pymongo.errors import ConnectionFailure
 
@@ -38,6 +38,7 @@ class UserCreate(BaseModel):
     username: str
     password: str
     role: str  # "user", "admin", "high_admin"
+    team: str
 
 class UserLogin(BaseModel):
     username: str
@@ -73,6 +74,8 @@ class ForwardComplaintPayload(BaseModel):
     correction5: str
     inspector_name5: str
     inspection_date5: str
+    # approver_recommendation: str
+
 
 # Routes
 
@@ -111,7 +114,8 @@ def register_user(username: str = Form(...), password: str = Form(...)):
     users_collection.insert_one({
         "username": username,
         "password": hashed_password,
-        "role": 'user'
+        "role": 'user',
+        "team": 'user'
     })
     return RedirectResponse(url="/", status_code=303)
 
@@ -132,7 +136,7 @@ def submit_complaint(
     otherTeam: str = Form(None)  # สำหรับกรณีที่เลือก "อื่นๆ"
 ):
     # กำหนดประเภทข้อร้องเรียนที่ใช้งาน
-    complaint_team = otherTeam if team == "อื่นๆ" else team
+    # complaint_team = otherTeam if team == "อื่นๆ" else team
     
     # เพิ่มข้อมูลลง MongoDB
     complaint = {
@@ -141,13 +145,13 @@ def submit_complaint(
         "name": name,
         "date": date,
         "contact": contact,
-        "team": complaint_team,
+        "team": team,
         "status": "Pending"
     }
     result = complaints_collection.insert_one(complaint)
     complaint_id = str(result.inserted_id)
     # กำหนดอีเมลปลายทาง
-    recipient_email = EMAIL_RECIPIENTS.get(complaint_team, "default@example.com")
+    recipient_email = EMAIL_RECIPIENTS.get(team, "default@example.com")
     
     # ส่งอีเมล
     send_email(title, complaint_id, recipient_email)
@@ -201,6 +205,10 @@ async def show_forwardeds_page(request: Request):
 @app.get("/admin_download", response_class=HTMLResponse)
 async def show_admin_download_page(request: Request):
     return templates.TemplateResponse("admin_download.html", {"request": request})
+
+@app.get("/cancelled_complaints", response_class=HTMLResponse)
+async def show_cancelled_complaints_page(request: Request):
+    return templates.TemplateResponse("cancelled_complaints.html", {"request": request})
 
 # Handle Logout
 @app.get("/logout")
@@ -340,6 +348,9 @@ def get_complaints():
             "contact": complaint["contact"],
             "team": complaint["team"],
             "status": complaint["status"],
+            "cancellation_reason": complaint.get("cancellation_reason"),
+            "approver_recommendation": complaint.get("approver_recommendation"),
+            
         })
     return response
 
@@ -357,6 +368,10 @@ def get_username(current_user: dict = Depends(get_current_user)):
 @app.get("/admin/get-userrole")
 def get_userrole(current_user: dict = Depends(get_current_user)):
     return {"role": current_user["role"]}
+
+@app.get("/admin/get-userteam")
+def get_userteam(current_user: dict = Depends(get_current_user)):
+    return {"team": current_user["team"]}
 
 @app.post("/admin/save-complaint/{id}")
 async def admit_complaint(id: str, payload: ForwardComplaintPayload = Body(...)):
@@ -422,7 +437,7 @@ async def admit_complaint(id: str, payload: ForwardComplaintPayload = Body(...))
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/admin/forward-complaint/{id}")
-async def admit_complaint(id: str, payload: ForwardComplaintPayload = Body(...)):
+async def forward_complaint(id: str, payload: ForwardComplaintPayload = Body(...)):
     try:
         # Access the payload data
         severity_level = payload.severity_level
@@ -442,6 +457,7 @@ async def admit_complaint(id: str, payload: ForwardComplaintPayload = Body(...))
         correction5 = payload.correction5
         inspector_name5 = payload.inspector_name5
         inspection_date5 = payload.inspection_date5
+        # recommendation = payload.approver_recommendation
 
         update_data = OrderedDict([
             ("severity_level", severity_level),
@@ -485,7 +501,7 @@ async def admit_complaint(id: str, payload: ForwardComplaintPayload = Body(...))
         raise HTTPException(status_code=500, detail=str(e))
     
 @app.post("/admin/complete-complaint/{id}")
-def complete_complaint(id: str):
+def complete_complaint(id: str, approver_recommendation: str = Form(...)):
     # อัปเดตสถานะเป็น complete ใน MongoDB
     result = complaints_collection.update_one(
         {"_id": ObjectId(id)},
@@ -493,6 +509,7 @@ def complete_complaint(id: str):
             "$set": {
                 "status": "Complete",
                 "complete_date": datetime.utcnow(),
+                "approver_recommendation": approver_recommendation,
             }
         }
     )
@@ -501,6 +518,83 @@ def complete_complaint(id: str):
         return {"message": "Complaint complete successfully"}
     else:
         return {"error": "Failed to complete complaint"}
+
+@app.post("/admin/undo-complaint/{id}")
+def undo_complaint(id: str, approver_recommendation: str = Form(...)):
+    # อัปเดตสถานะเป็น complete ใน MongoDB
+    result = complaints_collection.update_one(
+        {"_id": ObjectId(id)},
+        {
+            "$set": {
+                "status": "Admit",
+                "approver_recommendation": approver_recommendation,
+            }
+        }
+    )
+
+    if result.modified_count == 1:
+        return {"message": "Complaint complete successfully"}
+    else:
+        return {"error": "Failed to complete complaint"}
+    
+@app.post("/admin/cancel-complaint/{id}")
+async def cancel_complaint(id: str, cancellation_reason: str = Form(...), approver_recommendation: str = Form(...)):
+    try:
+        complaint = complaints_collection.find_one({"_id": ObjectId(id)})
+        if not complaint:
+            raise HTTPException(status_code=404, detail="Complaint not found")
+
+        # Update complaint status to 'Cancelled' and add cancellation reason
+        update_result = complaints_collection.update_one(
+            {"_id": ObjectId(id)},
+            {
+                "$set": {
+                    "status": "Cancelled",
+                    "cancellation_reason": cancellation_reason,
+                    "cancelled_date": datetime.utcnow(),
+                    "deletion_scheduled": datetime.utcnow() + timedelta(days=30),
+                    "approver_recommendation": approver_recommendation,
+                }
+            }
+        )
+
+        if update_result.modified_count == 1:
+            return JSONResponse(content={"message": "Complaint cancelled successfully"})
+        else:
+            return HTTPException(status_code=404, detail="Complaint not found or already cancelled")
+    except InvalidId:
+        raise HTTPException(status_code=400, detail=f"Invalid complaint ID: {id}")
+
+@app.post("/admin/undo-cancellation/{id}")
+async def undo_cancellation(id: str):
+    try:
+        complaint = complaints_collection.find_one({"_id": ObjectId(id)})
+        if not complaint:
+            raise HTTPException(status_code=404, detail="Complaint not found")
+
+        # Update complaint status to 'Admit' and remove cancellation reason
+        update_result = complaints_collection.update_one(
+            {"_id": ObjectId(id)},
+            {
+                "$set": {
+                    "status": "Admit",
+                    "cancellation_reason": None,
+                    "cancelled_date": None,
+                    "deletion_scheduled": None,
+                    # "approver_recommendation": approver_recommendation,
+                }
+            }
+        )
+        if update_result.modified_count == 1:
+            return {"message": "Complaint cancellation undone successfully"}
+        else:
+            return HTTPException(status_code=404, detail="Complaint not found or already undone")
+
+    except InvalidId:
+        raise HTTPException(status_code=400, detail=f"Invalid complaint ID: {id}")
+
+# start task
+start_scheduler()
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 4000))  # Get port from environment variable, or default to 8000

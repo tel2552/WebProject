@@ -1,23 +1,19 @@
 <!DOCTYPE html>
 <html lang="en">
-    <style>
-        body  {
-            background-image: url("/static/IMG_4022.jpg");
-            background-color: #cccccc;
-            background-position: center; /* Center the image */
-            background-repeat: no-repeat; /* Do not repeat the image */
-            -moz-background-size: 100% 100%;
-            -webkit-background-size: 100% 100%;
-            background-size: 100% 100%;
-        }
-        </style>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>คำร้องใหม่</title>
+    <title>คำร้องที่ยกเลิก</title>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
         body {
+            background-image: url("/static/IMG_4022.jpg");
+            background-color: #cccccc;
+            background-position: center;
+            background-repeat: no-repeat;
+            -moz-background-size: 100% 100%;
+            -webkit-background-size: 100% 100%;
+            background-size: 100% 100%;
             font-family: Arial, sans-serif;
             margin: 0;
             padding: 0;
@@ -84,28 +80,62 @@
             color: #007BFF;
         }
 
-        .status-resolved {
-            color: green;
+        .status-cancelled {
+            color: gray;
         }
 
-        .status-pending {
-            color: red;
-        }
-        
-        .status-admit {
-            color: #FFC107;
-        }
-
-        .btn-update {
+        .btn-undo {
             color: white;
-            background-color: #007BFF;
+            background-color: #28a745; /* Green */
             border: none;
             padding: 5px 10px;
             cursor: pointer;
+            border-radius: 4px;
         }
 
-        .btn-update:hover {
+        .btn-undo:hover {
+            background-color: #218838;
+        }
+        .search-container {
+            margin-bottom: 20px;
+            text-align: left; /* Align search options to the left */
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .search-container label {
+            margin-right: 5px;
+            white-space: nowrap; /* Prevent label from wrapping */
+        }
+
+        .search-container input[type="text"],
+        .search-container input[type="date"] {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            flex: 1; /* Allow input fields to grow */
+            max-width: 200px;
+        }
+        .btn-search {
+            color: white;
+            background-color: #007BFF;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+
+        .btn-search:hover {
             background-color: #0056b3;
+        }
+        .warning-message {
+            background-color: #fff3cd; /* Light yellow */
+            color: #856404; /* Darker yellow */
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 20px;
         }
     </style>
 </head>
@@ -122,7 +152,16 @@
 
     <!-- Content -->
     <div class="content">
-        <h1>คำร้องใหม่</h1>
+        <h1>คำร้องที่ยกเลิก</h1>
+        <!-- Warning Message -->
+        <div class="warning-message">
+            <p><strong>คำเตือน:</strong> คำร้องที่ยกเลิกจะถูกลบออกจากระบบภายใน 30 วัน</p>
+        </div>
+        <div class="search-container">
+            <label for="searchInput">คำค้นหา:</label>
+            <input type="text" id="searchInput" placeholder="ค้นหา...">
+            <!-- remove filter status -->
+        </div>
         <label for="sort-options">เรียงลำดับ:</label>
         <select id="sort-options" onchange="sortTable()">
             <option value="newest">วันที่ใหม่ → เก่า</option>
@@ -137,12 +176,14 @@
                     <th>วันที่</th>
                     <th>ช่องทางติดต่อ</th>
                     <th>ทีมที่เกี่ยวข้อง</th>
+                    <th>หมายเหตุการยกเลิก</th>
+                    <th>วันที่จะถูกลบ</th>
                     <th>สถานะ</th>
-                    <th>อัปเดตสถานะ</th>
+                    <th>ดำเนินการ</th>
                 </tr>
             </thead>
-            <tbody id="complaints-table">
-                <!-- Data from MongoDB will be populated here -->
+            <tbody id="cancelled-complaints-table">
+                <!-- Cancelled complaints data will be loaded here -->
             </tbody>
         </table>
     </div>
@@ -185,52 +226,97 @@
                     })
             }
         }
-        
-        async function fetchComplaints() {
+
+        async function fetchCancelledComplaints() {
             try {
-                const response = await fetch("/admin/get-complaints");
+                const response = await fetch("/admin/get-complaints", {
+                    method: "GET",
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                    }
+                });
                 const complaints = await response.json();
-
-                const tableBody = document.getElementById("complaints-table");
-                tableBody.innerHTML = ""; // Clear existing rows
-
-                // Fetch user role and team
+                 // fetch user role and team
                 const userRole = await getUserRole();
                 const userTeam = await getUserTeam();
-
+                const tableBody = document.getElementById("cancelled-complaints-table");
+                tableBody.innerHTML = ""; // Clear existing rows
+                // Add data in table
                 complaints.forEach(complaint => {
-                    // Show only "Pending" complaints
-                    if (complaint.status === "Pending") {
-                        // Filter by team if user is "admin"
+                    // Check if complaint is Cancelled and Filter Team.
+                    if (complaint.status === "Cancelled") {
                         if (userRole === "admin" && complaint.team !== userTeam) {
-                            return; // Skip to the next complaint
+                             return; // Skip to the next complaint
                         }
-
-                        const row = document.createElement("tr");
-                        row.innerHTML = `
-                            <td>${complaint.title}</td>
-                            <td>${complaint.details}</td>
-                            <td>${complaint.name}</td>
-                            <td>${complaint.date}</td>
-                            <td>${complaint.contact}</td>
-                            <td>${complaint.team}</td>
-                            <td class="status ${complaint.status === 'Admit' ? 'status-admit' : 'status-pending'}">
-                                ${complaint.status}
-                            </td>
-                            <td>
-                                <form action="/admin/admit-complaint/${complaint._id}" method="get">
-                                    <button type="submit" class="btn btn-success">Mark as Admit</button>
-                                </form>
-                            </td>
-                        `;
-
-                        tableBody.appendChild(row);
+                            const row = document.createElement("tr");
+                            const undoButton = `
+                                <button class="btn-undo" onclick="undoCancellation(${complaint.id})">กู้คืน</button>
+                            `;
+                            const now = new Date();
+                            const deletionDate = new Date(complaint.deletion_scheduled);
+                            let daysUntilDeletion = Math.ceil((deletionDate - now) / (1000 * 60 * 60 * 24));
+                            if (isNaN(daysUntilDeletion) || daysUntilDeletion < 0) {
+                                daysUntilDeletion = "0";
+                            }
+                            row.innerHTML = `
+                                <td>${complaint.title}</td>
+                                <td>${complaint.details}</td>
+                                <td>${complaint.name}</td>
+                                <td>${complaint.date}</td>
+                                <td>${complaint.contact}</td>
+                                <td>${complaint.team}</td>
+                                <td>${complaint.cancellation_reason || ''}</td>
+                                <td>${daysUntilDeletion}</td>
+                                <td class="status status-cancelled">${complaint.status}</td>
+                                <td>${undoButton}</td>
+                            `;
+                            tableBody.appendChild(row);
                     }
                 });
                 // Sort the table after loading data
                 sortTable();
+                
             } catch (error) {
-                console.error("Failed to fetch complaints:", error);
+                console.error("Failed to fetch cancelled complaints:", error);
+            }
+        }
+
+        async function undoCancellation(complaintId) {
+            try {
+                const response = await fetch(`/admin/undo-cancellation/${complaintId}`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/x-www-form-urlencoded",
+                    },
+                    body: ``,
+                });
+
+                if (response.ok) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'กู้คืนคำร้องสำเร็จ',
+                        showConfirmButton: false,
+                        timer: 1500
+                    }).then(()=>{
+                         fetchCancelledComplaints(); // Refresh the list
+                    })
+                
+                } else {
+                    const error = await response.json();
+                    Swal.fire({
+                        icon: 'error',
+                        title: `เกิดข้อผิดพลาด: ${error.detail}`,
+                        showConfirmButton: true,
+                    })
+                    console.error("Failed to undo cancellation:", error);
+                }
+            } catch (error) {
+                Swal.fire({
+                    icon: 'error',
+                    title: `Failed to undo cancellation`,
+                    showConfirmButton: true,
+                })
+                console.error("Error during undo cancellation:", error);
             }
         }
 
@@ -289,9 +375,8 @@
                 return null;
             }
         }
-
         async function sortTable() {
-            const table = document.getElementById("complaints-table");
+            const table = document.getElementById("cancelled-complaints-table");
             const rows = Array.from(table.rows);
             const sortOrder = document.getElementById("sort-options").value;
 
@@ -305,8 +390,26 @@
             table.innerHTML = ""; // ล้างตารางก่อนแสดงผลใหม่
             rows.forEach(row => table.appendChild(row));
         }
+        function filterComplaints() {
+            const filterText = searchInput.value.toLowerCase();
+            const rows = document.getElementById('cancelled-complaints-table').getElementsByTagName('tr');
 
-        fetchComplaints();
+            for (let i = 0; i < rows.length; i++) {
+                const cells = rows[i].getElementsByTagName('td');
+                const title = cells[0].textContent.toLowerCase();
+                const details = cells[1].textContent.toLowerCase();
+                const name = cells[2].textContent.toLowerCase();
+                const textMatch = title.includes(filterText) || details.includes(filterText) || name.includes(filterText);
+                rows[i].style.display = textMatch ? '' : 'none';
+            }
+        }
+
+        // Event listeners
+        const searchInput = document.getElementById('searchInput');
+        const searchButton = document.getElementById('searchButton');
+        searchInput.addEventListener("input",filterComplaints);
+
+        fetchCancelledComplaints();
     </script>
 </body>
 </html>
