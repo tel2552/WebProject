@@ -7,7 +7,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from typing import List, Dict, Any
 from datetime import timedelta, datetime, date
-from database import users_collection, complaints_collection, email_recipients_collection, bins_collection
+from database import users_collection, complaints_collection, email_recipients_collection
 from auth import get_password_hash, verify_password, create_access_token
 from email_service import send_email
 from delete_service import start_scheduler, delete_old_cancelled_complaints
@@ -25,21 +25,24 @@ templates = Jinja2Templates(directory="templates")
 
 # Models
 # Mapping ระหว่างประเภทข้อร้องเรียนกับอีเมลปลายทาง
-EMAIL_RECIPIENTS = {
-    "ด้านบุคลากร": "phubasesri@pim.ac.th",
-    "การบริการงานวิจัย": "nuttawutwon@pim.ac.th",
-    "การบริการวิชาการ": "academic@example.com",
-    "การบริหารจัดการของ PIM": "management@example.com",
-    "การบริการแก่นักศึกษา": "telergamer@gmail.com",
-    "อื่นๆ": "other@example.com"
-}
+# EMAIL_RECIPIENTS = {
+#     "ด้านบุคลากร": "phubasesri@pim.ac.th",
+#     "การบริการงานวิจัย": "nuttawutwon@pim.ac.th",
+#     "การบริการวิชาการ": "academic@example.com",
+#     "การบริหารจัดการของ PIM": "management@example.com",
+#     "การบริการแก่นักศึกษา": "telergamer@gmail.com",
+#     "อื่นๆ": "other@example.com"
+# }
 
-class UserCreate(BaseModel):
+class User(BaseModel):
     username: str
     password: str
     role: str  # "user", "admin", "high_admin"
     team: str
 
+class Email(BaseModel):
+    team: str
+    email: str
 class UserLogin(BaseModel):
     username: str
     password: str
@@ -124,6 +127,34 @@ def register_user(username: str = Form(...), password: str = Form(...)):
 async def show_complaint_page(request: Request):
     return templates.TemplateResponse("complaint.html", {"request": request})
 
+# Email Management
+@app.get("/api/emails", response_model=List[Email])
+async def get_emails(current_user: dict = Depends(get_current_user)):
+    if current_user["role"] not in ["superadmin", "alladmin"]:
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    emails = list(email_recipients_collection.find())
+    for email in emails:
+        email["_id"] = str(email["_id"])
+    return emails
+
+@app.put("/api/emails/{email_id}")
+async def update_email(email_id: str, email: Email, current_user: dict = Depends(get_current_user)):
+    if current_user["role"] not in ["superadmin", "alladmin"]:
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    result = email_recipients_collection.update_one({"_id": ObjectId(email_id)}, {"$set": email.dict()})
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Email not found")
+    return {"message": "Email updated"}
+
+@app.delete("/api/emails/{email_id}")
+async def delete_email(email_id: str, current_user: dict = Depends(get_current_user)):
+    if current_user["role"] not in ["superadmin", "alladmin"]:
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    result = email_recipients_collection.delete_one({"_id": ObjectId(email_id)})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Email not found")
+    return {"message": "Email deleted"}
+
 # Handle Complaint Submission
 @app.post("/submit-complaint")
 def submit_complaint(
@@ -151,7 +182,11 @@ def submit_complaint(
     result = complaints_collection.insert_one(complaint)
     complaint_id = str(result.inserted_id)
     # กำหนดอีเมลปลายทาง
-    recipient_email = EMAIL_RECIPIENTS.get(team, "default@example.com")
+    email_recipient = email_recipients_collection.find_one({"team": team})
+    if email_recipient:
+        recipient_email = email_recipient["email"]
+    else:
+        recipient_email = "default@example.com"  # Default email if not found
     
     # ส่งอีเมล
     send_email(title, complaint_id, recipient_email)
@@ -209,6 +244,10 @@ async def show_admin_download_page(request: Request):
 @app.get("/cancelled_complaints", response_class=HTMLResponse)
 async def show_cancelled_complaints_page(request: Request):
     return templates.TemplateResponse("cancelled_complaints.html", {"request": request})
+
+@app.get("/admin_control", response_class=HTMLResponse)
+async def show_admin_control_page(request: Request):
+    return templates.TemplateResponse("admin_control.html", {"request": request})
 
 # Handle Logout
 @app.get("/logout")
@@ -595,6 +634,68 @@ async def undo_cancellation(id: str):
 
 # start task
 start_scheduler()
+
+# --- Admin Management (Now using /register and /login) ---
+
+# Get Admins (Now using /register)
+@app.get("/api/admins")
+async def get_admins(current_user: dict = Depends(get_current_user)):
+    if current_user["role"] not in ["superadmin", "alladmin"]:
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    
+    admins = list(users_collection.find({"role": {"$in": ["admin", "superadmin", "alladmin"]}}))
+    for admin in admins:
+        admin["_id"] = str(admin["_id"])
+        admin.pop("password", None)
+    return admins
+
+# Create Admin (Now using /register)
+@app.post("/api/admins")
+async def create_admin(admin: User, current_user: dict = Depends(get_current_user)):
+    if current_user["role"] not in ["superadmin", "alladmin"]:
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    
+    existing_admin = users_collection.find_one({"username": admin.username})
+    if existing_admin:
+        raise HTTPException(status_code=400, detail="Username already exists")
+    
+    hashed_password = get_password_hash(admin.password)
+    admin.password = hashed_password
+    result = users_collection.insert_one(admin.dict())
+    return {"message": "Admin created", "id": str(result.inserted_id)}
+
+# Update Admin (Now using /register)
+@app.put("/api/admins/{admin_id}")
+async def update_admin(admin_id: str, admin: User, current_user: dict = Depends(get_current_user)):
+    if current_user["role"] not in ["superadmin", "alladmin"]:
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    
+    # Fetch the user with _id
+    user_with_id = users_collection.find_one({"username": admin.username})
+    if not user_with_id:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # user_id = user_with_id["_id"]
+    
+    update_data = admin.dict(exclude_unset=True)
+    if "password" in update_data:
+        update_data["password"] = get_password_hash(update_data["password"])
+    
+    result = users_collection.update_one({"_id": ObjectId(admin_id)}, {"$set": update_data})
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Admin not found")
+    return {"message": "Admin updated"}
+
+# Delete Admin (Now using /register)
+@app.delete("/api/admins/{admin_id}")
+async def delete_admin(admin_id: str, current_user: dict = Depends(get_current_user)):
+    if current_user["role"] not in ["superadmin", "alladmin"]:
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    
+    result = users_collection.delete_one({"_id": ObjectId(admin_id)})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Admin not found")
+    return {"message": "Admin deleted"}
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 4000))  # Get port from environment variable, or default to 8000

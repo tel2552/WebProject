@@ -20,29 +20,6 @@
             display: flex;
         }
 
-        .navbar {
-            width: 250px;
-            background-color: #333;
-            color: white;
-            height: 100vh;
-            padding: 20px;
-            box-sizing: border-box;
-        }
-
-        .navbar a {
-            color: white;
-            text-decoration: none;
-            display: block;
-            padding: 10px;
-            margin: 5px 0;
-            border-radius: 4px;
-            transition: background-color 0.3s;
-        }
-
-        .navbar a:hover {
-            background-color: #575757;
-        }
-
         .content {
             flex-grow: 1;
             padding: 20px;
@@ -141,14 +118,7 @@
 </head>
 <body>
     <!-- Navbar -->
-    <div class="navbar">
-        <a href="/admin_complaints">คำร้องใหม่</a>
-        <a href="/reports">คำร้องของหน่วยงาน</a>
-        <a href="/forwardeds">อนุมัติคำร้อง</a>
-        <a href="/admin_download">รายงานสรุป</a>
-        <a href="/cancelled_complaints">คำร้องที่ยกเลิก</a>
-        <a href="#" onclick="logout()">ออกจากระบบ</a>
-    </div>
+    {% include 'navbar.html' %}
 
     <!-- Content -->
     <div class="content">
@@ -189,44 +159,6 @@
     </div>
 
     <script>
-        async function logout() {
-            try {
-                // ลบ Token จาก localStorage
-                localStorage.removeItem("access_token");
-
-                // ส่งคำขอไปยังเซิร์ฟเวอร์เพื่อลบ Cookie (ถ้ามี)
-                const response = await fetch("/logout", {
-                    method: "GET"
-                });
-
-                if (response.ok) {
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'ออกจากระบบเรียบร้อยแล้ว',
-                        showConfirmButton: false,
-                        timer: 1500
-                    }).then(()=>{
-                        window.location.href = "/";
-                    })
-
-                } else {
-                    const error = await response.json();
-                    Swal.fire({
-                        icon: 'error',
-                        title: `Error: ${error.detail}`,
-                        showConfirmButton: true,
-                    })
-                }
-            } catch (error) {
-                console.error("Error during logout:", error);
-                Swal.fire({
-                        icon: 'error',
-                        title: "Failed to logout",
-                        showConfirmButton: true,
-                    })
-            }
-        }
-
         async function fetchCancelledComplaints() {
             try {
                 const response = await fetch("/admin/get-complaints", {
