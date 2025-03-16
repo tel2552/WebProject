@@ -7,15 +7,16 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
         body {
-            /* font-family: Arial, sans-serif; */
-            margin: 20px;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: block;
             background-image: url("/static/IMG_4022.jpg");
             background-color: #cccccc;
-            background-position: center; /* Center the image */
-            background-repeat: no-repeat; /* Do not repeat the image */
-            -moz-background-size: 100% 100%;
-            -webkit-background-size: 100% 100%;
-            background-size: 100% 100%;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-size: cover; /* ปรับให้เต็มจอ */
+            min-height: 100vh; /* บังคับให้เต็มจอเสมอ */
         }
 
         h1 {

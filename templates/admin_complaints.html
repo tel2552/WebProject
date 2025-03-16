@@ -1,16 +1,5 @@
 <!DOCTYPE html>
 <html lang="en">
-    <style>
-        body  {
-            background-image: url("/static/IMG_4022.jpg");
-            background-color: #cccccc;
-            background-position: center; /* Center the image */
-            background-repeat: no-repeat; /* Do not repeat the image */
-            -moz-background-size: 100% 100%;
-            -webkit-background-size: 100% 100%;
-            background-size: 100% 100%;
-        }
-        </style>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -21,17 +10,37 @@
             font-family: Arial, sans-serif;
             margin: 0;
             padding: 0;
-            display: flex;
+            display: block;
+            background-image: url("/static/IMG_4022.jpg");
+            background-color: #cccccc;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-size: cover; /* ปรับให้เต็มจอ */
+            min-height: 100vh; /* บังคับให้เต็มจอเสมอ */
         }
 
         .content {
+            margin-left: 0; /* เริ่มต้นที่ 0 */
             flex-grow: 1;
             padding: 20px;
+            transition: margin-left 0.3s; /* ทำให้ขยับนุ่มนวล */
         }
 
         h1 {
-            color: #333;
-            text-align: center;
+            font-size: 2.5em; /* ขนาดตัวอักษร */
+            font-weight: bold;
+            color: white;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            padding: 10px 20px; /* ปรับขนาด padding ให้พอดี */
+            background: linear-gradient(45deg, #006400, #00b894); /* สีพื้นหลังไล่เฉด */
+            border-radius: 10px;
+            text-shadow: 3px 3px 5px rgba(0, 0, 0, 0.3);
+            
+            display: inline-block; /* ทำให้พื้นหลังพอดีกับตัวอักษร */
+            text-align: center; /* จัดข้อความให้อยู่ตรงกลาง (แต่ inline-block ใช้ margin auto ด้วย) */
+            margin: 20px auto; /* ทำให้ h1 อยู่ตรงกลางแนวนอน */
+            width: auto; /* ป้องกันไม่ให้ขยายเกินตัวอักษร */
         }
 
         table {
@@ -39,12 +48,15 @@
             border-collapse: collapse;
             margin: 20px 0;
             background-color: #f4f4f4;
+            table-layout: fixed; /* Add this line */
+            word-break: break-word; /* Add this line */
         }
 
         th, td {
             border: 1px solid #ddd;
             padding: 8px;
             text-align: left;
+            word-break: break-word;
         }
 
         th {
@@ -92,7 +104,9 @@
 
     <!-- Content -->
     <div class="content">
-        <h1>คำร้องใหม่</h1>
+        <div style="text-align: center;">
+            <h1>คำร้องใหม่</h1>
+        </div>
         <label for="sort-options">เรียงลำดับ:</label>
         <select id="sort-options" onchange="sortTable()">
             <option value="newest">วันที่ใหม่ → เก่า</option>
@@ -116,129 +130,8 @@
             </tbody>
         </table>
     </div>
-
-    <script>  
-        async function fetchComplaints() {
-            try {
-                const response = await fetch("/admin/get-complaints");
-                const complaints = await response.json();
-
-                const tableBody = document.getElementById("complaints-table");
-                tableBody.innerHTML = ""; // Clear existing rows
-
-                // Fetch user role and team
-                const userRole = await getUserRole();
-                const userTeam = await getUserTeam();
-
-                complaints.forEach(complaint => {
-                    // Show only "Pending" complaints
-                    if (complaint.status === "Pending") {
-                        // Filter by team if user is "admin"
-                        if (userRole === "admin" && complaint.team !== userTeam) {
-                            return; // Skip to the next complaint
-                        }
-
-                        const row = document.createElement("tr");
-                        row.innerHTML = `
-                            <td>${complaint.title}</td>
-                            <td>${complaint.details}</td>
-                            <td>${complaint.name}</td>
-                            <td>${complaint.date}</td>
-                            <td>${complaint.contact}</td>
-                            <td>${complaint.team}</td>
-                            <td class="status ${complaint.status === 'Admit' ? 'status-admit' : 'status-pending'}">
-                                ${complaint.status}
-                            </td>
-                            <td>
-                                <form action="/admin/admit-complaint/${complaint._id}" method="get">
-                                    <button type="submit" class="btn btn-success">Mark as Admit</button>
-                                </form>
-                            </td>
-                        `;
-
-                        tableBody.appendChild(row);
-                    }
-                });
-                // Sort the table after loading data
-                sortTable();
-            } catch (error) {
-                console.error("Failed to fetch complaints:", error);
-            }
-        }
-
-        async function getUserRole() {
-            try {
-                const token = localStorage.getItem('access_token');
-                if (!token) {
-                    console.error('No access token found.');
-                    return null;
-                }
-
-                const response = await fetch('/admin/get-userrole', {  // Make sure this endpoint exists and returns the user's role
-                    method: 'GET',
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
-
-                if (response.ok) {
-                    const data = await response.json();
-                    return data.role; // Assuming the server returns { "role": "superadmin" }
-                } else {
-                    console.error('Failed to fetch user role:', response.statusText);
-                    return null;
-                }
-            } catch (error) {
-                console.error('Error fetching user role:', error);
-                return null;
-            }
-        }
-
-        async function getUserTeam() {
-            try {
-                const token = localStorage.getItem('access_token');
-                if (!token) {
-                    console.error('No access token found.');
-                    return null;
-                }
-
-                const response = await fetch('/admin/get-userteam', {
-                    method: 'GET',
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
-
-                if (response.ok) {
-                    const data = await response.json();
-                    return data.team;
-                } else {
-                    console.error('Failed to fetch user team:', response.statusText);
-                    return null;
-                }
-            } catch (error) {
-                console.error('Error fetching user team:', error);
-                return null;
-            }
-        }
-
-        async function sortTable() {
-            const table = document.getElementById("complaints-table");
-            const rows = Array.from(table.rows);
-            const sortOrder = document.getElementById("sort-options").value;
-
-            rows.sort((a, b) => {
-                const dateA = new Date(a.cells[3].textContent); // คอลัมน์วันที่
-                const dateB = new Date(b.cells[3].textContent);
-
-                return sortOrder === "newest" ? dateB - dateA : dateA - dateB;
-            });
-
-            table.innerHTML = ""; // ล้างตารางก่อนแสดงผลใหม่
-            rows.forEach(row => table.appendChild(row));
-        }
-
-        fetchComplaints();
-    </script>
+    <script defer src="/static/js/user-data.js"></script>
+    <script defer src="/static/js/admin_complaints.js"></script>
+    <script src="/static/js/navbar.js"></script>
 </body>
 </html>

@@ -7,28 +7,42 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
         body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: block;
             background-image: url("/static/IMG_4022.jpg");
             background-color: #cccccc;
             background-position: center;
             background-repeat: no-repeat;
-            -moz-background-size: 100% 100%;
-            -webkit-background-size: 100% 100%;
-            background-size: 100% 100%;
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            display: flex;
+            background-size: cover; /* ปรับให้เต็มจอ */
+            min-height: 100vh; /* บังคับให้เต็มจอเสมอ */
         }
 
         .content {
+            margin-left: 0; /* เริ่มต้นที่ 0 */
             flex-grow: 1;
             padding: 20px;
+            transition: margin-left 0.3s; /* ทำให้ขยับนุ่มนวล */
         }
 
         h1 {
-            color: #333;
-            text-align: center;
+            font-size: 2.5em; /* ขนาดตัวอักษร */
+            font-weight: bold;
+            color: white;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            padding: 10px 20px; /* ปรับขนาด padding ให้พอดี */
+            background: linear-gradient(45deg, #006400, #00b894); /* ไล่สีเขียวเข้ม -> เขียวอ่อน */
+            border-radius: 10px;
+            text-shadow: 3px 3px 5px rgba(0, 0, 0, 0.3);
+            
+            display: inline-block; /* ทำให้พื้นหลังพอดีกับตัวอักษร */
+            text-align: center; /* จัดข้อความให้อยู่ตรงกลาง */
+            margin: 20px auto; /* ทำให้ h1 อยู่ตรงกลางแนวนอน */
+            width: auto; /* ป้องกันไม่ให้ขยายเกินตัวอักษร */
         }
+
 
         table {
             width: 100%;
@@ -122,7 +136,10 @@
 
     <!-- Content -->
     <div class="content">
-        <h1>คำร้องที่ยกเลิก</h1>
+        <div style="text-align: center;">
+            <h1>คำร้องที่ยกเลิก</h1>
+        </div>
+
         <!-- Warning Message -->
         <div class="warning-message">
             <p><strong>คำเตือน:</strong> คำร้องที่ยกเลิกจะถูกลบออกจากระบบภายใน 30 วัน</p>
@@ -212,6 +229,7 @@
                 console.error("Failed to fetch cancelled complaints:", error);
             }
         }
+
 
         async function undoCancellation(complaintId) {
             try {
@@ -343,5 +361,6 @@
 
         fetchCancelledComplaints();
     </script>
+    <script src="/static/js/navbar.js"></script>
 </body>
 </html>

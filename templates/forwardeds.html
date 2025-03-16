@@ -1,16 +1,5 @@
 <!DOCTYPE html>
 <html lang="en">
-    <style>
-        body  {
-            background-image: url("/static/IMG_4022.jpg");
-            background-color: #cccccc;
-            background-position: center; /* Center the image */
-            background-repeat: no-repeat; /* Do not repeat the image */
-            -moz-background-size: 100% 100%;
-            -webkit-background-size: 100% 100%;
-            background-size: 100% 100%;
-        }
-        </style>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -21,17 +10,37 @@
             font-family: Arial, sans-serif;
             margin: 0;
             padding: 0;
-            display: flex;
+            display: block;
+            background-image: url("/static/IMG_4022.jpg");
+            background-color: #cccccc;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-size: cover; /* ปรับให้เต็มจอ */
+            min-height: 100vh; /* บังคับให้เต็มจอเสมอ */
         }
 
         .content {
+            margin-left: 0; /* เริ่มต้นที่ 0 */
             flex-grow: 1;
             padding: 20px;
+            transition: margin-left 0.3s; /* ทำให้ขยับนุ่มนวล */
         }
 
         h1 {
-            color: #333;
-            text-align: center;
+            font-size: 2.5em; /* ขนาดตัวอักษร */
+            font-weight: bold;
+            color: white;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            padding: 10px 20px; /* ปรับขนาด padding ให้พอดี */
+            background: linear-gradient(45deg, #006400, #00b894); /* ไล่สีเขียวเข้ม -> เขียวอ่อน */
+            border-radius: 10px;
+            text-shadow: 3px 3px 5px rgba(0, 0, 0, 0.3);
+            
+            display: inline-block; /* ทำให้พื้นหลังพอดีกับตัวอักษร */
+            text-align: center; /* จัดข้อความให้อยู่ตรงกลาง */
+            margin: 20px auto; /* ทำให้ h1 อยู่ตรงกลางแนวนอน */
+            width: auto; /* ป้องกันไม่ให้ขยายเกินตัวอักษร */
         }
 
         table {
@@ -96,7 +105,9 @@
 
     <!-- Content -->
     <div class="content">
-        <h1>อนุมัติคำร้อง</h1>
+        <div style="text-align: center;">
+            <h1>อนุมัติคำร้อง</h1>
+        </div> 
         <label for="sort-options">เรียงลำดับ:</label>
         <select id="sort-options" onchange="sortTable()">
             <option value="newest">วันที่ใหม่ → เก่า</option>
@@ -179,6 +190,7 @@
             }
         }
 
+
         async function getUserRole() {
             try {
                 const token = localStorage.getItem('access_token');
@@ -253,5 +265,6 @@
 
         fetchAdmitComplaints();
     </script>
+    <script src="/static/js/navbar.js"></script>
 </body>
 </html>

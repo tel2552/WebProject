@@ -1,12 +1,28 @@
 <!-- templates/navbar.html -->
 <style>
+    /* สไตล์พื้นฐานของ Navbar */
     .navbar {
         width: 250px;
         background-color: #333;
         color: white;
         height: 100vh;
         padding: 20px;
+        padding-top: 60px; /* เลื่อนลงมา 60px */
         box-sizing: border-box;
+        position: fixed;
+        left: -250px; /* ซ่อนเมนูเริ่มต้น */
+        top: 0;
+        transition: left 0.3s;
+    }
+
+    /* ถ้าเมนูเปิดอยู่ */
+    .navbar.show {
+        left: 0;
+    }
+
+    /* เมื่อ Navbar เปิด */
+    .navbar.show ~ .content {
+        margin-left: 250px; /* ขยับเมื่อเปิดเมนู */
     }
 
     .navbar a {
@@ -22,11 +38,38 @@
     .navbar a:hover {
         background-color: #575757;
     }
-    .hidden {
-        display: none;
+
+    /* ปุ่ม Hamburger */
+    .menu-toggle {
+        position: fixed;
+        top: 15px;
+        left: 15px;
+        background: #333;
+        color: white;
+        border: none;
+        padding: 10px;
+        cursor: pointer;
+        font-size: 18px;
+        z-index: 1000;
+    }
+
+    /* ซ่อน Navbar ในมือถือ */
+    @media (max-width: 768px) {
+        .navbar {
+            width: 200px;
+        }
+
+        .content {
+            margin-left: 0; /* ให้เนื้อหากลางจอเมื่อ Navbar ซ่อน */
+        }
     }
 </style>
-<div class="navbar">
+
+<!-- ปุ่ม Hamburger -->
+<button class="menu-toggle" onclick="toggleNavbar()">☰</button>
+
+<!-- Navbar -->
+<div class="navbar" id="navbar-container">
     <a href="/admin_complaints">คำร้องใหม่</a>
     <a href="/reports">คำร้องของหน่วยงาน</a>
     <a href="/forwardeds">อนุมัติคำร้อง</a>
@@ -35,90 +78,3 @@
     <a href="/admin_control" id="admin-control-link" class="hidden">จัดการข้อมูล</a>
     <a href="#" onclick="logout()">ออกจากระบบ</a>
 </div>
-<script>
-    async function logout() {
-        try {
-            // ลบ Token จาก localStorage
-            localStorage.removeItem("access_token");
-
-            // ส่งคำขอไปยังเซิร์ฟเวอร์เพื่อลบ Cookie (ถ้ามี)
-            const response = await fetch("/logout", {
-                method: "GET"
-            });
-
-            if (response.ok) {
-                Swal.fire({
-                    icon: 'success',
-                    title: 'ออกจากระบบเรียบร้อยแล้ว',
-                    showConfirmButton: false,
-                    timer: 1500
-                }).then(()=>{
-                    window.location.href = "/";
-                    checkUserRole(); // Call checkUserRole after logout
-                })
-
-            } else {
-                const error = await response.json();
-                Swal.fire({
-                    icon: 'error',
-                    title: `Error: ${error.detail}`,
-                    showConfirmButton: true,
-                })
-            }
-        } catch (error) {
-            console.error("Error during logout:", error);
-            Swal.fire({
-                    icon: 'error',
-                    title: "Failed to logout",
-                    showConfirmButton: true,
-                })
-        }
-    }
-
-    async function checkUserRole() {
-        console.log("checkUserRole() called");
-        try {
-            const token = localStorage.getItem('access_token');
-            console.log("Token:", token);
-            if (!token) {
-                console.log('No access token found.');
-                document.getElementById('admin-control-link').classList.add('hidden');
-                return;
-            }
-
-            const response = await fetch('/admin/get-userrole', {
-                method: 'GET',
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            });
-
-            if (response.ok) {
-                const data = await response.json();
-                const userRole = data.role;
-                console.log("User Role:", userRole);
-                const adminControlLink = document.getElementById('admin-control-link');
-
-                if (userRole === 'alladmin') {
-                    console.log("Showing admin control link");
-                    adminControlLink.classList.remove('hidden');
-                } else {
-                    console.log("Hiding admin control link");
-                    adminControlLink.classList.add('hidden');
-                }
-            } else {
-                console.error('Failed to fetch user role:', response.statusText);
-                document.getElementById('admin-control-link').classList.add('hidden');
-            }
-        } catch (error) {
-            console.error('Error fetching user role:', error);
-            document.getElementById('admin-control-link').classList.add('hidden');
-        }
-    }
-
-    // Call checkUserRole when the page loads
-    document.addEventListener('DOMContentLoaded', () => {
-        console.log("DOMContentLoaded event fired");
-        checkUserRole();
-    });
-</script>

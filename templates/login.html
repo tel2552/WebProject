@@ -208,9 +208,9 @@
                 body: formData.toString()
             });
             const result = await response.json();
+            // const token = data.access_token;
             if (response.ok) {
                 localStorage.setItem("access_token", result.token);
-                checkUserRole();
                 window.location.href = result.redirect_url; // Redirect to the new URL
             } else {
                 Swal.fire({
@@ -221,47 +221,6 @@
                 });
             }
         });
-
-        async function checkUserRole() {
-            console.log("checkUserRole() called");
-            try {
-                const token = localStorage.getItem('access_token');
-                console.log("Token:", token);
-                if (!token) {
-                    console.error('No access token found.');
-                    document.getElementById('admin-control-link').classList.add('hidden');
-                    return;
-                }
-
-                const response = await fetch('/admin/get-userrole', {
-                    method: 'GET',
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
-
-                if (response.ok) {
-                    const data = await response.json();
-                    const userRole = data.role;
-                    console.log("User Role:", userRole);
-                    const adminControlLink = document.getElementById('admin-control-link');
-
-                    if (userRole === 'alladmin') {
-                        console.log("Showing admin control link");
-                        adminControlLink.classList.remove('hidden');
-                    } else {
-                        console.log("Hiding admin control link");
-                        adminControlLink.classList.add('hidden');
-                    }
-                } else {
-                    console.error('Failed to fetch user role:', response.statusText);
-                    document.getElementById('admin-control-link').classList.add('hidden');
-                }
-            } catch (error) {
-                console.error('Error fetching user role:', error);
-                document.getElementById('admin-control-link').classList.add('hidden');
-            }
-        }
 
     </script>
 </body>

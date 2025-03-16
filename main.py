@@ -1,6 +1,6 @@
 import os
 import uvicorn
-from fastapi import FastAPI, HTTPException, Depends, Request, Form, Body, Response, status
+from fastapi import FastAPI, HTTPException, Depends, Request, Form, Body, Response, status , Query
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
@@ -89,7 +89,7 @@ async def show_login_page(request: Request):
 
 # Handle Login
 @app.post("/login")
-async def login_user(username: str = Form(...), password: str = Form(...)):
+async def login_user(response: Response, username: str = Form(...), password: str = Form(...)): # add response: Response
     try:
         db_user = users_collection.find_one({"username": username})
         if not db_user or not verify_password(password, db_user["password"]):
@@ -97,6 +97,10 @@ async def login_user(username: str = Form(...), password: str = Form(...)):
 
         token = create_access_token(data={"sub": db_user["username"], "role": db_user["role"]}, expires_delta=timedelta(minutes=60))
         redirect_url = "/admin_complaints" if db_user["role"] in ["admin", "superadmin", "alladmin"] else "/complaint"
+        
+        # Set the token in a cookie (optional, but good for fallback)
+        response.set_cookie(key="access_token", value=token, httponly=True, max_age=3600) # 1 hour
+        
         return JSONResponse(content={"token": token, "redirect_url": redirect_url})
     except ConnectionFailure as e:
         raise HTTPException(status_code=500, detail="Database connection failed")
@@ -393,8 +397,62 @@ def get_complaints():
         })
     return response
 
-# def get_current_user_Mock():
-#     return {"username": "admin_user"}
+# no use
+# @app.get("/admin/get-complaints-with-user-data")
+# def get_complaints_with_user_data(
+#     current_user: dict = Depends(get_current_user),
+#     status: str = Query(None),
+#     team: str = Query(None),
+#     sort_by: str = Query("date"),  # Default sorting by date
+#     sort_order: str = Query("desc"),  # Default descending order (newest first)
+#     page: int = Query(1, ge=1),  # Page number, must be >= 1
+#     per_page: int = Query(20, ge=1, le=100),  # Items per page, 1-100
+# ):
+#     query = {}
+#     if status:
+#         query["status"] = status
+#     if team:
+#         query["team"] = team
+#     if current_user["role"] == "admin":
+#         query["team"] = current_user["team"]
+
+#     # Sorting
+#     sort_direction = -1 if sort_order == "desc" else 1
+#     sort_field = sort_by
+#     if sort_by == "date":
+#         sort_field = "date"
+
+#     # Pagination
+#     skip = (page - 1) * per_page
+
+#     complaints = complaints_collection.find(query).sort(sort_field, sort_direction).skip(skip).limit(per_page)
+#     total_complaints = complaints_collection.count_documents(query)
+
+#     response = []
+#     for complaint in complaints:
+#         response.append({
+#             "id": str(complaint["_id"]),
+#             "title": complaint["title"],
+#             "details": complaint["details"],
+#             "name": complaint["name"],
+#             "date": complaint["date"],
+#             "contact": complaint["contact"],
+#             "team": complaint["team"],
+#             "status": complaint["status"],
+#             "cancellation_reason": complaint.get("cancellation_reason"),
+#             "approver_recommendation": complaint.get("approver_recommendation"),
+#             "deletion_scheduled": complaint.get("deletion_scheduled"),
+#         })
+
+#     return {
+#         "complaints": response,
+#         "total_complaints": total_complaints,
+#         "page": page,
+#         "per_page": per_page,
+#         "user_role": current_user["role"],
+#         "user_team": current_user["team"],
+#     }
+
 
 @app.get("/admin/get-username")
 def get_username(current_user: dict = Depends(get_current_user)):
