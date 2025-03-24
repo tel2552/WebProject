@@ -253,12 +253,15 @@ async def show_cancelled_complaints_page(request: Request):
 async def show_admin_control_page(request: Request):
     return templates.TemplateResponse("admin_control.html", {"request": request})
 
-# Handle Logout
 @app.get("/logout")
 async def logout_user(response: Response):
     # ลบ Cookie (ถ้ามี)
     response.delete_cookie(key="access_token")
-    return {"message": "Logged out successfully"}
+    # Return a response that will trigger client-side action
+    return JSONResponse(
+        content={"message": "Logged out successfully", "clearLocalStorage": True},
+        headers={"Cache-Control": "no-cache, no-store, must-revalidate", "Pragma": "no-cache", "Expires": "0"}
+    )
 
 # ดึงข้อมูลคำร้องเฉพาะ ID
 @app.get("/admin/get-complaint/{id}")

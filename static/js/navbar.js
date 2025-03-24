@@ -26,10 +26,16 @@ document.querySelectorAll(".navbar a").forEach(link => {
 
 async function logout() {
     try {
-        localStorage.removeItem("access_token");
         const response = await fetch("/logout", { method: "GET" });
+        const data = await response.json();
 
         if (response.ok) {
+            if (data.clearLocalStorage) {
+                localStorage.removeItem("userData");
+                localStorage.removeItem("userRole");
+            }
+            localStorage.removeItem("access_token");
+
             Swal.fire({
                 icon: "success",
                 title: "ออกจากระบบเรียบร้อยแล้ว",
@@ -39,22 +45,31 @@ async function logout() {
                 window.location.href = "/";
             });
         } else {
-            const error = await response.json();
+            // Handle server-side errors
+            let errorMessage = "Failed to logout";
+            if (data && data.detail) {
+                errorMessage = `Error: ${data.detail}`;
+            } else if (data && data.message) {
+                errorMessage = `Error: ${data.message}`;
+            }
             Swal.fire({
                 icon: "error",
-                title: `Error: ${error.detail}`,
+                title: errorMessage,
                 showConfirmButton: true,
             });
         }
     } catch (error) {
+        // Handle network or other client-side errors
         console.error("Error during logout:", error);
         Swal.fire({
             icon: "error",
             title: "Failed to logout",
+            text: "An unexpected error occurred.",
             showConfirmButton: true,
         });
     }
 }
+
 
 async function checkUserRole() {
     const cachedRole = localStorage.getItem("userRole");
