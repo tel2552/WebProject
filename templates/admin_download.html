@@ -188,6 +188,8 @@
         const dateFilter = document.getElementById('dateFilter');
         const searchButton = document.getElementById('searchButton');
         let allComplaints = [];
+        let complaintCounter = 0; // Initialize a global counter for complaint numbers
+        
         
         async function fetchAllComplaints() {
             try {
@@ -203,6 +205,7 @@
         async function displayComplaints(complaints) {
             const tableBody = document.getElementById("complaints-table");
             tableBody.innerHTML = ""; // Clear existing rows
+            complaintCounter = 0; // Reset the counter when displaying new complaints
             const userRole = await getUserRole();
             const userTeam = await getUserTeam();
             complaints.forEach((complaint, index) => {
@@ -210,6 +213,7 @@
                             return; // Skip to the next complaint
                         }
                         
+                complaintCounter++;
                 const row = document.createElement("tr");
                 // Format the date
                 let formattedDate = '-';
@@ -218,7 +222,7 @@
                     formattedDate = date.toLocaleDateString('en-CA'); // Format to YYYY-MM-DD, change your format here
                 }
                 row.innerHTML = `
-                    <td>${index + 1}</td>
+                    <td>${complaintCounter}</td>
                     <td>${complaint.title}</td>
                     <td>${complaint.name}</td>
                     <td>${formattedDate}</td>
