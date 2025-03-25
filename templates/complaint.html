@@ -116,33 +116,33 @@
         }
         
         document.addEventListener("DOMContentLoaded", function() { // Ensure DOM is loaded
-            const contactYes = document.getElementById('contact-yes');
-            const contactNo = document.getElementById('contact-no');
-            const contactDetails = document.getElementById('contact-details');
-            const phoneInput = document.getElementById('phonecontact');
-            const mailInput = document.getElementById('mailcontact');
+            // const contactYes = document.getElementById('contact-yes');
+            // const contactNo = document.getElementById('contact-no');
+            // const contactDetails = document.getElementById('contact-details');
+            // const phoneInput = document.getElementById('phonecontact');
+            // const mailInput = document.getElementById('mailcontact');
 
-            // Function to toggle visibility and required attributes
-            function toggleContactDetails() {
-                if (contactYes.checked) {
-                    contactDetails.style.display = 'block';
-                    phoneInput.required = true;
-                    mailInput.required = true;
-                } else {
-                    contactDetails.style.display = 'none';
-                    phoneInput.required = false;
-                    mailInput.required = false;
-                    phoneInput.value = "";
-                    mailInput.value = "";
-                }
-            }
+            // // Function to toggle visibility and required attributes
+            // function toggleContactDetails() {
+            //     if (contactYes.checked) {
+            //         contactDetails.style.display = 'block';
+            //         phoneInput.required = true;
+            //         mailInput.required = true;
+            //     } else {
+            //         contactDetails.style.display = 'none';
+            //         phoneInput.required = false;
+            //         mailInput.required = false;
+            //         phoneInput.value = "";
+            //         mailInput.value = "";
+            //     }
+            // }
 
-            // Initial state
-            toggleContactDetails();
+            // // Initial state
+            // toggleContactDetails();
 
-            // Event listeners for radio buttons
-            contactYes.addEventListener('change', toggleContactDetails);
-            contactNo.addEventListener('change', toggleContactDetails);
+            // // Event listeners for radio buttons
+            // contactYes.addEventListener('change', toggleContactDetails);
+            // contactNo.addEventListener('change', toggleContactDetails);
             document.getElementById("complaint-form").addEventListener("submit", async (e) => {
                 e.preventDefault();
                 
