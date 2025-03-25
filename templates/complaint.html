@@ -21,6 +21,53 @@
             height: auto;
             overflow: visible;
         }
+        /* Style for radio button on the same line */
+        .radio-inline {
+        display: flex;
+        align-items: center;
+        margin-bottom: 10px;
+        gap: 10px;
+        }
+
+        .radio-inline input[type="radio"] {
+            margin: 0;
+            /* Hide the default radio button */
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            /* Create custom radio button */
+            width: 20px;
+            height: 20px;
+            border: 2px solid #ccc;
+            border-radius: 50%;
+            outline: none;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .radio-inline input[type="radio"]:checked {
+            border-color: #007bff; /* Change border color when checked */
+        }
+
+        .radio-inline input[type="radio"]:checked::before {
+            content: "\f00c"; /* Checkmark icon */
+            font-family: "Font Awesome 6 Free";
+            font-weight: 900;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #007bff; /* Change checkmark color */
+            font-size: 14px;
+        }
+
+        .radio-inline label {
+            font-size: 15px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 5px; /* Space between label text and icon */
+        }
         </style>
 <head>
     <meta charset="UTF-8">
@@ -69,6 +116,33 @@
         }
         
         document.addEventListener("DOMContentLoaded", function() { // Ensure DOM is loaded
+            const contactYes = document.getElementById('contact-yes');
+            const contactNo = document.getElementById('contact-no');
+            const contactDetails = document.getElementById('contact-details');
+            const phoneInput = document.getElementById('phonecontact');
+            const mailInput = document.getElementById('mailcontact');
+
+            // Function to toggle visibility and required attributes
+            function toggleContactDetails() {
+                if (contactYes.checked) {
+                    contactDetails.style.display = 'block';
+                    phoneInput.required = true;
+                    mailInput.required = true;
+                } else {
+                    contactDetails.style.display = 'none';
+                    phoneInput.required = false;
+                    mailInput.required = false;
+                    phoneInput.value = "";
+                    mailInput.value = "";
+                }
+            }
+
+            // Initial state
+            toggleContactDetails();
+
+            // Event listeners for radio buttons
+            contactYes.addEventListener('change', toggleContactDetails);
+            contactNo.addEventListener('change', toggleContactDetails);
             document.getElementById("complaint-form").addEventListener("submit", async (e) => {
                 e.preventDefault();
                 
@@ -172,6 +246,7 @@
         
     </script>
     <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
 <body>
     <div class="container">
@@ -187,12 +262,31 @@
             <label for="date">*วันที่พบปัญหา:</label>
             <input type="date" id="date" name="date" required><br><br>
             
-            <label for="contact">*ช่องทางติดต่อกลับ:
+            <!-- <label for="contact">*ช่องทางติดต่อกลับ:
             </label><label for="contact">โทรศัพท์:</label>
             <input type="text" id="phonecontact" name="contact" required>
             <label for="contact">อีเมล:</label>
-            <input type="text" id="mailcontact" name="contact" required><br><br>
+            <input type="text" id="mailcontact" name="contact" required><br><br> -->
             
+            <label for="contact-preference">*ต้องการให้ติดต่อกลับ:</label>
+            <div class="radio-inline">
+                <input type="radio" id="contact-yes" name="contact-preference" value="yes" required>
+                <label for="contact-yes">
+                    <i class="fa-solid fa-phone"></i> ต้องการ
+                </label>
+                <input type="radio" id="contact-no" name="contact-preference" value="no" required>
+                <label for="contact-no">
+                    <i class="fa-solid fa-times"></i> ไม่ต้องการ
+                </label>
+            </div><br><br>
+
+
+            <div id="contact-details" style="display: none;">
+                <label for="phonecontact">เบอร์โทรศัพท์:</label>
+                <input type="text" id="phonecontact" name="phonecontact">
+                <label for="mailcontact">อีเมล:</label>
+                <input type="email" id="mailcontact" name="mailcontact"><br><br>
+            </div>
             
             <label>ประเภทข้อร้องเรียน:</label>
             <select name="team" required>

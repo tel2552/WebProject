@@ -171,6 +171,7 @@
                     <th>ผู้ดำเนินการข้อร้องเรียน</th>
                     <th>หน่วยงาน</th>
                     <th>ระดับความรุนแรง</th>
+                    <th>วันที่แก้ไขปัญหา</th>
                     <th>การแก้ไขปัญหา</th>
                     <th>สถานะ</th>
                 </tr>
@@ -221,6 +222,12 @@
                     const date = new Date(complaint.resolved_date);
                     formattedDate = date.toLocaleDateString('en-CA'); // Format to YYYY-MM-DD, change your format here
                 }
+                // Format the complete date
+                let formattedCompleteDate = '-';
+                if (complaint.complete_date) {
+                    const completeDate = new Date(complaint.complete_date);
+                    formattedCompleteDate = completeDate.toLocaleDateString('en-CA'); // Format to YYYY-MM-DD
+                }
                 row.innerHTML = `
                     <td>${complaintCounter}</td>
                     <td>${complaint.title}</td>
@@ -229,6 +236,7 @@
                     <td>${complaint.inspector_name2}</td>
                     <td>${complaint.team}</td>
                     <td>${complaint.severity_level}</td>
+                    <td>${formattedCompleteDate}</td>
                     <td>${complaint.correction2}</td>
                     <td>${complaint.status}</td>
                 `;
@@ -391,6 +399,6 @@
         });
 
     </script>
-    <script src="/static/js/navbar.js"></script>
+    <!-- <script src="/static/js/navbar.js"></script> -->
 </body>
 </html>

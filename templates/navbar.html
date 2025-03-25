@@ -1,4 +1,6 @@
 <!-- templates/navbar.html -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
 <style>
     /* สไตล์พื้นฐานของ Navbar */
     .navbar {
@@ -28,7 +30,8 @@
     .navbar a {
         color: white;
         text-decoration: none;
-        display: block;
+        display: flex;
+        align-items: center;
         padding: 10px;
         margin: 5px 0;
         border-radius: 4px;
@@ -37,6 +40,10 @@
 
     .navbar a:hover {
         background-color: #575757;
+    }
+
+    .navbar a i {
+        margin-right: 10px;
     }
 
     /* ปุ่ม Hamburger */
@@ -70,11 +77,12 @@
 
 <!-- Navbar -->
 <div class="navbar" id="navbar-container">
-    <a href="/admin_complaints">คำร้องใหม่</a>
-    <a href="/reports">คำร้องของหน่วยงาน</a>
-    <a href="/forwardeds">อนุมัติคำร้อง</a>
-    <a href="/admin_download">รายงานสรุป</a>
-    <a href="/cancelled_complaints">คำร้องที่ยกเลิก</a>
-    <a href="/admin_control" id="admin-control-link" class="hidden">จัดการข้อมูล</a>
-    <a href="#" onclick="logout()">ออกจากระบบ</a>
+    <a href="/admin_complaints"><i class="fa-solid fa-inbox"></i> คำร้องใหม่</a>
+    <a href="/reports"><i class="fa-solid fa-file-alt"></i> คำร้องของหน่วยงาน</a>
+    <a href="/forwardeds"><i class="fa-solid fa-check-circle"></i> อนุมัติคำร้อง</a>
+    <a href="/admin_download"><i class="fa-solid fa-download"></i> รายงานสรุป</a>
+    <a href="/cancelled_complaints"><i class="fa-solid fa-times-circle"></i> คำร้องที่ยกเลิก</a>
+    <a href="/admin_control" id="admin-control-link" class="hidden"><i class="fa-solid fa-cogs"></i> จัดการข้อมูล</a>
+    <a href="#" onclick="logout()"><i class="fa-solid fa-sign-out-alt"></i> ออกจากระบบ</a>
 </div>
+<script src="/static/js/navbar.js"></script>

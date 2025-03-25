@@ -1,21 +1,22 @@
 import os
 import uvicorn
-from fastapi import FastAPI, HTTPException, Depends, Request, Form, Body, Response, status , Query
+from fastapi import FastAPI, HTTPException, Depends, Request, Form, Body, Response, status , Query, Cookie
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from datetime import timedelta, datetime, date
 from database import users_collection, complaints_collection, email_recipients_collection
-from auth import get_password_hash, verify_password, create_access_token
+from auth import get_password_hash, verify_password, create_access_token, get_current_user
 from email_service import send_email
 from delete_service import start_scheduler, delete_old_cancelled_complaints
-from auth import get_current_user
 from bson import ObjectId
 from bson.errors import InvalidId
 from collections import OrderedDict
 from pymongo.errors import ConnectionFailure
+from jose import JWTError, jwt
+from auth import SECRET_KEY, ALGORITHM
 
 app = FastAPI()
 
@@ -84,8 +85,32 @@ class ForwardComplaintPayload(BaseModel):
 
 # Render Login Page
 @app.get("/", response_class=HTMLResponse)
-async def show_login_page(request: Request):
-    return templates.TemplateResponse("login.html", {"request": request})
+async def show_login_page(request: Request, access_token: Optional[str] = Cookie(None)):
+    if access_token:
+        try:
+            # Verify the token
+            payload = jwt.decode(access_token, SECRET_KEY, algorithms=[ALGORITHM])
+            username: str = payload.get("sub")
+            role: str = payload.get("role")
+
+            # Check if the user exists in the database
+            user = users_collection.find_one({"username": username})
+            if user:
+                # Redirect based on role
+                if role in ["admin", "superadmin", "alladmin"]:
+                    return RedirectResponse(url="/admin_complaints", status_code=303)
+                else:
+                    return RedirectResponse(url="/complaint", status_code=303)
+            else:
+                # User not found, treat as if no token
+                return templates.TemplateResponse("login.html", {"request": request})
+
+        except JWTError:
+            # Token is invalid, treat as if no token
+            return templates.TemplateResponse("login.html", {"request": request})
+    else:
+        # No token found, show the login page
+        return templates.TemplateResponse("login.html", {"request": request})
 
 # Handle Login
 @app.post("/login")
@@ -293,7 +318,8 @@ async def get_completed_complaints():
             else None,
             "inspector_name2": complaint.get("inspector_name2"),
             "severity_level": complaint.get("severity_level"),
-            "correction2": complaint.get("correction2")
+            "correction2": complaint.get("correction2"),
+            "complete_date": complaint.get("complete_date").isoformat() if complaint.get("complete_date") else None,
         })
     return complaints_list
 

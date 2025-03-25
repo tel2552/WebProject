@@ -70,6 +70,24 @@ async function logout() {
     }
 }
 
+// async function checkTokenAndRedirect() {
+//     const token = localStorage.getItem('access_token');
+//     if (!token) {
+//         // No token found, redirect to login
+//         Swal.fire({
+//             icon: 'error',
+//             title: 'เกิดข้อผิดพลาด!',
+//             text: "คุณยังไม่ได้เข้าสู่ระบบ",
+//             confirmButtonText: 'ตกลง',
+//         }).then(()=>{
+//             window.location.href = "/"; 
+//         });
+//     }
+//     const userRole = await getUserRole();
+//     if (userRole === "superadmin") {
+//         document.getElementById("admin-control-link").classList.remove("hidden");
+//     }
+// }
 
 async function checkUserRole() {
     const cachedRole = localStorage.getItem("userRole");
@@ -129,6 +147,7 @@ function updateAdminControlLink(userRole) {
 document.addEventListener("DOMContentLoaded", () => {
     console.log("Navbar script loaded successfully!");
     checkUserRole();
+    // checkTokenAndRedirect();
 });
 
 function preventDefaultAndRedirect(event) {

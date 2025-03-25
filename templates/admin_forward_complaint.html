@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ส่งคำร้องไปยังหน่วยงาน</title>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -123,10 +124,48 @@
             border-radius: 4px;
             cursor: pointer;
             transition: background-color 0.3s;
+            position: relative;
         }
 
         .severity-option:hover {
             opacity: 0.9;
+        }
+
+        /* Tooltip container */
+        .severity-option .tooltiptext {
+            visibility: hidden;
+            width: 120px;
+            background-color: #333;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 5px 0;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%; /* Position above the label */
+            left: 50%;
+            transform: translateX(-50%);
+            opacity: 0;
+            transition: opacity 0.3s;
+            
+        }
+
+        /* Show tooltip on hover */
+        .severity-option:hover .tooltiptext {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        /* Tooltip arrow */
+        .severity-option .tooltiptext::after {
+            content: "";
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -5px;
+            border-width: 5px;
+            border-style: solid;
+            border-color: #333 transparent transparent transparent;
         }
 
         /* สีสำหรับแต่ละระดับความรุนแรง */
@@ -263,16 +302,24 @@
         <label>ระดับความรุนแรง:</label>
         <div class="severity-options">
             <label class="severity-option low">
-                <input type="radio" name="severity" value="low"> ต่ำ
+                <input type="radio" name="severity" value="low">
+                <span>ต่ำ</span>
+                <span class="tooltiptext">ผลกระทบเล็กน้อย</span>
             </label>
             <label class="severity-option medium">
-                <input type="radio" name="severity" value="medium"> ปานกลาง
+                <input type="radio" name="severity" value="medium">
+                <span>ปานกลาง</span>
+                <span class="tooltiptext">ผลกระทบปานกลาง</span>
             </label>
             <label class="severity-option high">
-                <input type="radio" name="severity" value="high"> สูง
+                <input type="radio" name="severity" value="high">
+                <span>สูง</span>
+                <span class="tooltiptext">ผลกระทบสูง</span>
             </label>
             <label class="severity-option critical">
-                <input type="radio" name="severity" value="critical"> วิกฤต
+                <input type="radio" name="severity" value="critical">
+                <span>วิกฤต</span>
+                <span class="tooltiptext">ผลกระทบร้ายแรง</span>
             </label>
         </div>
         </fieldset>
