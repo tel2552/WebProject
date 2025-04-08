@@ -1,175 +1,363 @@
 <!DOCTYPE html>
 <html lang="en">
-    <style>
-        body  {
-            background-image: url("/static/IMG_4022.jpg");
-            background-color: #cccccc;
-            background-position: center; /* Center the image */
-            background-repeat: no-repeat; /* Do not repeat the image */
-            -moz-background-size: 100% 100%;
-            -webkit-background-size: 100% 100%;
-            background-size: 100% 100%;
+<style>
+    body {
+        background-image: url("/static/img/IMG_4022.jpg");
+        background-color: #cccccc;
+        background-position: center;
+        background-repeat: no-repeat;
+        -moz-background-size: 100% 100%;
+        -webkit-background-size: 100% 100%;
+        background-size: 100% 100%;
+    }
+
+    h1 {
+            color: #fff; /* White text for contrast */
+            text-align: center;
+            padding: 20px;
+            background: linear-gradient(45deg, #006400, #00b894); /* Gradient background */
+            border-radius: 10px;
+            margin-bottom: 30px;
+            max-width: 50%;
+            margin-left: 50%;
+            margin-right: 20%;
+            transform: translateX(-50%); /* /* Center the title */
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Subtle shadow */
         }
-        /* Add style for details hidden */
-        .hidden {
-            visibility: hidden;
-            height: 0; /* Prevent white space */
-            overflow: hidden;
-        }
-        .visible {
-            visibility: visible;
-            height: auto;
-            overflow: visible;
-        }
-        /* Style for radio button on the same line */
-        .radio-inline {
+    
+    p {
+        text-align: center;
+        color: #fff; /* White text for contrast */
+        font-size: 1.2em;
+        margin-top: 20px;
+    }
+    /* Style for the modal */
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        /* Ensure the modal is on top */
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        overflow: auto;
+        background-color: rgba(0, 0, 0, 0.4);
+    }
+
+    .modal-content {
+        background-color: #fefefe;
+        margin: 15% auto;
+        padding: 20px;
+        border: 1px solid #888;
+        width: 80%;
+        max-width: 600px;
+        border-radius: 5px;
+        position: relative;
+        /* Required for absolute positioning of close button */
+    }
+
+    .close {
+        color: #aaa;
+        position: absolute;
+        top: 10px;
+        right: 20px;
+        font-size: 28px;
+        font-weight: bold;
+        cursor: pointer;
+    }
+
+    .close:hover,
+    .close:focus {
+        color: black;
+        text-decoration: none;
+        cursor: pointer;
+    }
+
+    #termsCheckbox {
+        display: flex;
+        align-items: center;
+        text-align: left;
+        gap: 8px;
+    }
+
+    #termsAgree {
+        width: 16px;
+        height: 16px;
+        margin: 0;
+    }
+
+    #agreeBtn {
+        margin-top: 10px;
+        background-color: #4CAF50;
+        color: white;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        opacity: 0.5;
+        pointer-events: none;
+    }
+
+    #agreeBtn.enabled {
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+    #cancelBtn {
+        margin-top: 10px;
+        background-color: #f44336;
+        color: white;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+
+    /* Add style for details hidden */
+    .hidden {
+        visibility: hidden;
+        height: 0;
+        /* Prevent white space */
+        overflow: hidden;
+    }
+
+    .visible {
+        visibility: visible;
+        height: auto;
+        overflow: visible;
+    }
+
+    /* Style for radio button on the same line */
+    .radio-inline {
         display: flex;
         align-items: center;
         margin-bottom: 10px;
         gap: 10px;
-        }
+    }
 
-        .radio-inline input[type="radio"] {
-            margin: 0;
-            /* Hide the default radio button */
-            -webkit-appearance: none;
-            -moz-appearance: none;
-            appearance: none;
-            /* Create custom radio button */
-            width: 20px;
-            height: 20px;
-            border: 2px solid #ccc;
-            border-radius: 50%;
-            outline: none;
-            cursor: pointer;
-            position: relative;
-        }
+    .radio-inline input[type="radio"] {
+        margin: 0;
+        /* Hide the default radio button */
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        appearance: none;
+        /* Create custom radio button */
+        width: 20px;
+        height: 20px;
+        border: 2px solid #ccc;
+        border-radius: 50%;
+        outline: none;
+        cursor: pointer;
+        position: relative;
+    }
 
-        .radio-inline input[type="radio"]:checked {
-            border-color: #007bff; /* Change border color when checked */
-        }
+    .radio-inline input[type="radio"]:checked {
+        border-color: #007bff;
+        /* Change border color when checked */
+    }
 
-        .radio-inline input[type="radio"]:checked::before {
-            content: "\f00c"; /* Checkmark icon */
-            font-family: "Font Awesome 6 Free";
-            font-weight: 900;
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            color: #007bff; /* Change checkmark color */
-            font-size: 14px;
-        }
+    .radio-inline input[type="radio"]:checked::before {
+        content: "\f00c";
+        /* Checkmark icon */
+        font-family: "Font Awesome 6 Free";
+        font-weight: 900;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        color: #007bff;
+        /* Change checkmark color */
+        font-size: 14px;
+    }
 
-        .radio-inline label {
-            font-size: 15px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 5px; /* Space between label text and icon */
-        }
-        </style>
+    .radio-inline label {
+        font-size: 15px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        /* Space between label text and icon */
+    }
+</style>
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ระบบรับข้อร้องเรียน</title>
+    <link rel="icon" href="/static/favicon.ico" type="image/x-icon">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+
+<body>
+    <!-- The Modal -->
+    <div id="termsModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>ข้อกำหนดและเงื่อนไข</h2>
+            <p>กรุณาอ่านข้อกำหนดและเงื่อนไขทั้งหมดก่อนดำเนินการต่อ</p>
+            <p>....</p>
+            <label id="termsCheckbox">
+                <input type="checkbox" id="termsAgree">
+                <span>ฉันได้อ่านและยอมรับข้อกำหนดและเงื่อนไขทั้งหมด</span>
+            </label>
+            <div>
+                <button id="agreeBtn" disabled>ตกลง</button>
+                <button id="cancelBtn">ยกเลิก</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <h1>แบบฟอร์มข้อร้องเรียน</h1>
+        <p>บันทึกการจัดการข้อร้องเรียน</p>
+        <form id="complaint-form">
+            <label for="title">หัวข้อคำร้อง:</label>
+            <input type="text" id="title" name="title" required><br>
+
+            <label for="name">*ชื่อลูกค้าผู้ร้องเรียน:</label>
+            <input type="text" id="name" name="name" required><br><br>
+
+            <label for="date">*วันที่พบปัญหา:</label>
+            <input type="date" id="date" name="date" required><br><br>
+
+            <label for="contact">*ช่องทางติดต่อกลับ:
+            </label><label for="contact">โทรศัพท์:</label>
+            <input type="text" id="phonecontact" name="contact" required>
+            <label for="contact">อีเมล:</label>
+            <input type="text" id="mailcontact" name="contact" required><br><br>
+
+            <!-- <label for="contact-preference">*ต้องการให้ติดต่อกลับ:</label>
+            <div class="radio-inline">
+                <input type="radio" id="contact-yes" name="contact-preference" value="yes" required>
+                <label for="contact-yes">
+                    <i class="fa-solid fa-phone"></i> ต้องการ
+                </label>
+                <input type="radio" id="contact-no" name="contact-preference" value="no" required>
+                <label for="contact-no">
+                    <i class="fa-solid fa-times"></i> ไม่ต้องการ
+                </label>
+            </div><br><br> -->
+
+
+            <div id="contact-details" style="display: none;">
+                <label for="phonecontact">เบอร์โทรศัพท์:</label>
+                <input type="text" id="phonecontact" name="phonecontact">
+                <label for="mailcontact">อีเมล:</label>
+                <input type="email" id="mailcontact" name="mailcontact"><br><br>
+            </div>
+
+            <label>ประเภทข้อร้องเรียน:</label>
+            <select name="team" required>
+                <option value="ด้านบุคลากร">ด้านบุคลากร</option>
+                <option value="การบริการงานวิจัย">การบริการงานวิจัย</option>
+                <option value="การบริการวิชาการ">การบริการวิชาการ</option>
+                <option value="การบริหารจัดการของ PIM">การบริหารจัดการของ PIM</option>
+                <option value="การบริการแก่นักศึกษา">การบริการแก่นักศึกษา</option>
+                <option value="อื่นๆ">อื่นๆ</option>
+            </select><br>
+
+            <label>กรณีเลือก "อื่นๆ" โปรดระบุ:</label>
+            <input type="text" name="otherType" disabled><br>
+
+            <label for="details" class="visible">*รายละเอียดข้อร้องเรียน:</label><br>
+            <textarea id="details" name="details" rows="4" cols="50" required class="visible"></textarea><br><br>
+
+            <button type="submit">ส่งข้อร้องเรียน</button>
+            <!-- ปุ่ม Logout -->
+            <!-- <button onclick="logout()">Logout</button> -->
+            <!-- ปุ่ม Login -->
+            <!-- <button onclick="logout()">Login as admin</button> -->
+
+        </form>
+        <p>Login as admin? <a href="/login">กดตรงนี้</a></p>
+    </div>
+
     <script>
-        async function logout() {
-            try {
-                // ลบ Token จาก localStorage
-                localStorage.removeItem("access_token");
+        // Get the modal
+        var modal = document.getElementById("termsModal");
 
-                // ส่งคำขอไปยังเซิร์ฟเวอร์เพื่อลบ Cookie (ถ้ามี)
-                const response = await fetch("/logout", {
-                    method: "GET"
-                });
+        // Get the <span> element that closes the modal
+        var span = document.getElementsByClassName("close")[0];
 
-                if (response.ok) {
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Logged out successfully',
-                        confirmButtonText: 'ตกลง',
-                        timer: 3000,
-                        timerProgressBar: true,
-                    }).then(() => {
-                        window.location.href = "/";
-                    });  // Redirect ไปหน้า Login
-                } else {
-                    const error = await response.json();
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'เกิดข้อผิดพลาด!',
-                        text: `Error: ${error.detail}`,
-                        confirmButtonText: 'ตกลง',
-                    });
-                }
-            } catch (error) {
-                console.error("Error during logout:", error);
-                Swal.fire({
-                        icon: 'error',
-                        title: 'เกิดข้อผิดพลาด!',
-                        text: "Failed to logout",
-                        confirmButtonText: 'ตกลง',
-                    });
-            }
+        // Get the checkbox, agree button, and cancel button
+        var termsCheckbox = document.getElementById("termsAgree");
+        var agreeBtn = document.getElementById("agreeBtn");
+        var cancelBtn = document.getElementById("cancelBtn");
+
+        // When the user clicks the button, open the modal
+        window.onload = function () {
+            modal.style.display = "block";
+        };
+
+        // When the user clicks on <span> (x), close the modal
+        span.onclick = function () {
+            modal.style.display = "none";
+            redirectToExternalSite();
         }
-        
-        document.addEventListener("DOMContentLoaded", function() { // Ensure DOM is loaded
-            // const contactYes = document.getElementById('contact-yes');
-            // const contactNo = document.getElementById('contact-no');
-            // const contactDetails = document.getElementById('contact-details');
-            // const phoneInput = document.getElementById('phonecontact');
-            // const mailInput = document.getElementById('mailcontact');
+        // Function to handle redirection
+        function redirectToExternalSite() {
+            window.location.href = "https://www.google.com/"; // Replace with your desired URL
+        }
 
-            // // Function to toggle visibility and required attributes
-            // function toggleContactDetails() {
-            //     if (contactYes.checked) {
-            //         contactDetails.style.display = 'block';
-            //         phoneInput.required = true;
-            //         mailInput.required = true;
-            //     } else {
-            //         contactDetails.style.display = 'none';
-            //         phoneInput.required = false;
-            //         mailInput.required = false;
-            //         phoneInput.value = "";
-            //         mailInput.value = "";
-            //     }
-            // }
+        // If the user clicks cancel.
+        cancelBtn.onclick = function () {
+            modal.style.display = "none";
+            redirectToExternalSite()
+        }
 
-            // // Initial state
-            // toggleContactDetails();
+        // When the user clicks anywhere outside of the modal, close it
+        // window.onclick = function (event) {
+        //     if (event.target == modal) {
+        //         modal.style.display = "none";
+        //         redirectToExternalSite()
+        //     }
+        // }
 
-            // // Event listeners for radio buttons
-            // contactYes.addEventListener('change', toggleContactDetails);
-            // contactNo.addEventListener('change', toggleContactDetails);
-            document.getElementById("complaint-form").addEventListener("submit", async (e) => {
-                e.preventDefault();
-                
-                // Show loading indicator
-                Swal.fire({
-                    title: 'กำลังส่งเรื่องร้องเรียน...',
-                    html: 'กรุณารอสักครู่',
-                    allowEscapeKey: false,
-                    allowOutsideClick: false,
-                    didOpen: () => {
-                        Swal.showLoading();
-                    },
-                });
+        // Checkbox event listener to enable/disable the agree button
+        termsCheckbox.addEventListener("change", function () {
+            if (this.checked) {
+                agreeBtn.classList.add("enabled");
+                agreeBtn.disabled = false;
+            } else {
+                agreeBtn.classList.remove("enabled");
+                agreeBtn.disabled = true;
+            }
+        });
 
-                // Collect all form data
-                const form = e.target;
-                const formData = new FormData(form);
+        agreeBtn.onclick = function () {
+            modal.style.display = "none";
+        }
 
-                // Add the "otherType" to details if necessary
-                const otherType = formData.get("otherType");
-                const selectedTeam = formData.get("team");
-                let details = formData.get("details") || ""; // Get existing details or initialize an empty string
+        document.getElementById("complaint-form").addEventListener("submit", async (e) => {
+            e.preventDefault();
 
-                if (selectedTeam === "อื่นๆ" && otherType.trim() !== "") {
-                    details += `\n(ประเภทอื่นๆ: ${otherType})`; // Add otherType to details
-                    formData.set("details", details); // Update the formData with the new details
-                }
+            // Show loading indicator
+            Swal.fire({
+                title: 'กำลังส่งเรื่องร้องเรียน...',
+                html: 'กรุณารอสักครู่',
+                allowEscapeKey: false,
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                },
+            });
+
+            // Collect all form data
+            const form = e.target;
+            const formData = new FormData(form);
+
+            // Add the "otherType" to details if necessary
+            const otherType = formData.get("otherType");
+            const selectedTeam = formData.get("team");
+            let details = formData.get("details") || ""; // Get existing details or initialize an empty string
+
+            if (selectedTeam === "อื่นๆ" && otherType.trim() !== "") {
+                details += `\n(ประเภทอื่นๆ: ${otherType})`; // Add otherType to details
+                formData.set("details", details); // Update the formData with the new details
+            }
 
             try {
                 const response = await fetch("/submit-complaint", {
@@ -178,22 +366,22 @@
                 });
 
                 if (response.ok) {
-                        // Close the loading indicator
-                        Swal.close();
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'ส่งเรื่องร้องเรียนเรียบร้อยแล้ว!',
-                            text: 'เราได้รับเรื่องร้องเรียนของคุณแล้ว',
-                            confirmButtonText: 'ตกลง',
-                            timer: 3000, // Automatically close after 3 seconds
-                            timerProgressBar: true,
-                        }).then(() => {
-                            form.reset(); //reset form
-                            // แสดงหรือซ่อน textarea ตามการเลือก
-                            toggleDetailsTextArea();
-                        });
-                    } else {
-                        // Close the loading indicator
+                    // Close the loading indicator
+                    Swal.close();
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'ส่งเรื่องร้องเรียนเรียบร้อยแล้ว!',
+                        text: 'เราได้รับเรื่องร้องเรียนของคุณแล้ว',
+                        confirmButtonText: 'ตกลง',
+                        timer: 3000, // Automatically close after 3 seconds
+                        timerProgressBar: true,
+                    }).then(() => {
+                        form.reset(); //reset form
+                        // แสดงหรือซ่อน textarea ตามการเลือก
+                        toggleDetailsTextArea();
+                    });
+                } else {
+                    // Close the loading indicator
                     Swal.close();
                     Swal.fire({
                         icon: 'error',
@@ -203,21 +391,20 @@
                     });
                 }
             } catch (error) {
-                        // Close the loading indicator
-                        Swal.close();
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'เกิดข้อผิดพลาด!',
-                            text: 'เกิดข้อผิดพลาดในการส่งเรื่องร้องเรียน กรุณาลองใหม่อีกครั้ง',
-                            confirmButtonText: 'ตกลง',
-                        });
-                    }
+                // Close the loading indicator
+                Swal.close();
+                Swal.fire({
+                    icon: 'error',
+                    title: 'เกิดข้อผิดพลาด!',
+                    text: 'เกิดข้อผิดพลาดในการส่งเรื่องร้องเรียน กรุณาลองใหม่อีกครั้ง',
+                    confirmButtonText: 'ตกลง',
                 });
-                // แสดงหรือซ่อน textarea ตามการเลือก
-                toggleDetailsTextArea();
-                // Add event listener to the select element
-                document.querySelector('select[name="team"]').addEventListener('change', toggleDetailsTextArea);
-            });
+            }
+        });
+        // แสดงหรือซ่อน textarea ตามการเลือก
+        toggleDetailsTextArea();
+        // Add event listener to the select element
+        document.querySelector('select[name="team"]').addEventListener('change', toggleDetailsTextArea);
 
         function toggleDetailsTextArea() {
             const teamSelect = document.querySelector('select[name="team"]');
@@ -242,73 +429,7 @@
                 otherTypeInput.disabled = teamSelect.value !== "อื่นๆ"; // Enable if "อื่นๆ" is selected, otherwise disable
             }
         }
-
-        
     </script>
-    <link rel="stylesheet" href="/static/style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-</head>
-<body>
-    <div class="container">
-        <h1>แบบฟอร์มข้อร้องเรียน</h1>
-        <p>บันทึกการจัดการข้อร้องเรียน</p>
-        <form id="complaint-form">
-            <label for="title">หัวข้อคำร้อง:</label>
-            <input type="text" id="title" name="title" required><br>
-
-            <label for="name">*ชื่อลูกค้าผู้ร้องเรียน:</label>
-            <input type="text" id="name" name="name" required><br><br>
-
-            <label for="date">*วันที่พบปัญหา:</label>
-            <input type="date" id="date" name="date" required><br><br>
-            
-            <label for="contact">*ช่องทางติดต่อกลับ:
-            </label><label for="contact">โทรศัพท์:</label>
-            <input type="text" id="phonecontact" name="contact" required>
-            <label for="contact">อีเมล:</label>
-            <input type="text" id="mailcontact" name="contact" required><br><br>
-            
-            <!-- <label for="contact-preference">*ต้องการให้ติดต่อกลับ:</label>
-            <div class="radio-inline">
-                <input type="radio" id="contact-yes" name="contact-preference" value="yes" required>
-                <label for="contact-yes">
-                    <i class="fa-solid fa-phone"></i> ต้องการ
-                </label>
-                <input type="radio" id="contact-no" name="contact-preference" value="no" required>
-                <label for="contact-no">
-                    <i class="fa-solid fa-times"></i> ไม่ต้องการ
-                </label>
-            </div><br><br> -->
-
-
-            <div id="contact-details" style="display: none;">
-                <label for="phonecontact">เบอร์โทรศัพท์:</label>
-                <input type="text" id="phonecontact" name="phonecontact">
-                <label for="mailcontact">อีเมล:</label>
-                <input type="email" id="mailcontact" name="mailcontact"><br><br>
-            </div>
-            
-            <label>ประเภทข้อร้องเรียน:</label>
-            <select name="team" required>
-                <option value="ด้านบุคลากร">ด้านบุคลากร</option>
-                <option value="การบริการงานวิจัย">การบริการงานวิจัย</option>
-                <option value="การบริการวิชาการ">การบริการวิชาการ</option>
-                <option value="การบริหารจัดการของ PIM">การบริหารจัดการของ PIM</option>
-                <option value="การบริการแก่นักศึกษา">การบริการแก่นักศึกษา</option>
-                <option value="อื่นๆ">อื่นๆ</option>
-            </select><br>
-            
-            <label>กรณีเลือก "อื่นๆ" โปรดระบุ:</label>
-            <input type="text" name="otherType" disabled><br>
-        
-            <label for="details" class="visible">*รายละเอียดข้อร้องเรียน:</label><br>
-            <textarea id="details" name="details" rows="4" cols="50" required class="visible"></textarea><br><br>
-        
-            <button type="submit">ส่งข้อร้องเรียน</button>
-            <!-- ปุ่ม Logout -->
-            <button onclick="logout()">Logout</button>
-            
-        </form>
-    </div>
 </body>
+
 </html>

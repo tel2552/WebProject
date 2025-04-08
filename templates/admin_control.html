@@ -1,21 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
-    <!-- <style>
-        body  {
-            background-image: url("/static/IMG_4022.jpg");
-            background-color: #cccccc;
-            background-position: center; /* Center the image */
-            background-repeat: no-repeat; /* Do not repeat the image */
-            -moz-background-size: 100% 100%;
-            -webkit-background-size: 100% 100%;
-            background-size: 100% 100%;
-        }
-        </style> -->
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Control Panel</title>
-    <!-- <link rel="stylesheet" href="/static/admin_control.css"> -->
+    <link rel="icon" href="/static/favicon.ico" type="image/x-icon">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
         body {
@@ -23,7 +12,7 @@
             margin: 0;
             padding: 0;
             display: block;
-            background-image: url("/static/IMG_4022.jpg");
+            background-image: url("/static/img/IMG_4022.jpg");
             background-color: #cccccc;
             background-position: center;
             background-repeat: no-repeat;
@@ -178,7 +167,7 @@
         <h1>Admin Control Panel</h1>
     </div>
     <div class="container">
-        <h2>Manage Emails</h2>
+        <h2>Manage Emails (Bug)</h2>
         <table id="emails-table">
             <thead>
                 <tr>
@@ -216,7 +205,7 @@
             <form id="email-edit-form">
                 <div class="form-group">
                     <label for="edit-team">Team:</label>
-                    <input type="text" id="edit-team" name="team" required>
+                    <input type="text" id="edit-team" name="team" readonly>
                 </div>
                 <div class="form-group">
                     <label for="edit-email">Email:</label>
@@ -228,6 +217,7 @@
             <div id="email-message" class="error-message"></div>
         </div>
     </div>
+    
 
     <!-- Admin Add/Edit Modal -->
     <div id="admin-modal" class="modal">
@@ -246,7 +236,6 @@
                 <div class="form-group">
                     <label for="admin-role">Role:</label>
                     <select id="admin-role" name="role" required>
-                        <!-- <option value="user">User</option> -->
                         <option value="admin">Admin</option>
                         <option value="superadmin">Superadmin</option>
                         <option value="alladmin">AllAdmin</option>
@@ -269,32 +258,70 @@
             <div id="admin-message" class="error-message"></div>
         </div>
     </div>
+
     <script>
-        // ดึงข้อมูลคำร้องจาก URL (เช่น /forward-complaint/{id})
-        // const complaintId = window.location.pathname.split("/").pop();
-
         // admin_control.js
-        document.addEventListener('DOMContentLoaded', () => {
-            const emailsTable = document.getElementById('emails-table').querySelector('tbody');
-            const adminsTable = document.getElementById('admins-table').querySelector('tbody');
-            const emailModal = document.getElementById('email-modal');
-            const adminModal = document.getElementById('admin-modal');
-            const emailCloseBtn = document.getElementById('email-close');
-            const adminCloseBtn = document.getElementById('admin-close');
-            const addAdminBtn = document.getElementById('add-admin-btn');
-            const emailForm = document.getElementById('email-edit-form');
-            const adminForm = document.getElementById('admin-form');
-            const emailMessage = document.getElementById('email-message');
-            const adminMessage = document.getElementById('admin-message');
-            const adminModalTitle = document.getElementById('admin-modal-title');
-            const adminPasswordInput = document.getElementById('admin-password');
 
+        // Make variables globally accessible
+        const emailsTable = document.getElementById('emails-table')?.querySelector('tbody');
+        const adminsTable = document.getElementById('admins-table')?.querySelector('tbody');
+        const emailModal = document.getElementById('email-modal');
+        const adminModal = document.getElementById('admin-modal');
+        const emailCloseBtn = document.getElementById('email-close');
+        const adminCloseBtn = document.getElementById('admin-close');
+        const addAdminBtn = document.getElementById('add-admin-btn');
+        const emailForm = document.getElementById('email-edit-form');
+        const adminForm = document.getElementById('admin-form');
+        const emailMessage = document.getElementById('email-message');
+        const adminMessage = document.getElementById('admin-message');
+        const adminModalTitle = document.getElementById('admin-modal-title');
+        const adminPasswordInput = document.getElementById('admin-password');
+
+        // Function to display error messages
+        function displayErrorMessage(element, message) {
+            element.textContent = message;
+            element.classList.add('error-message');
+            element.classList.remove('success-message');
+        }
+
+        // Function to display success messages
+        function displaySuccessMessage(element, message) {
+            element.textContent = message;
+            element.classList.add('success-message');
+            element.classList.remove('error-message');
+        }
+
+        // Function to clear messages
+        function clearMessage(element) {
+            element.textContent = '';
+            element.classList.remove('error-message', 'success-message');
+        }
+
+        // Make editEmail() globally accessible
+        function editEmail(emailId) {
+            console.log("Editing email with ID:", emailId);
+            // Find the row that contains the clicked button
+            const row = document.querySelector(`#emails-table tbody button[onclick="editEmail('${emailId}')"]`).closest('tr');
+            if (row) {
+                const team = row.cells[0].textContent;
+                const email = row.cells[1].textContent;
+                document.getElementById('edit-team').value = team;
+                document.getElementById('edit-email').value = email;
+                document.getElementById('edit-email-id').value = emailId;
+                emailModal.style.display = 'block';
+                clearMessage(emailMessage);
+            } else {
+                console.error("Could not find the row for email ID:", emailId);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
             // Function to fetch data with token
             async function fetchDataWithToken(url, options = {}) {
                 const token = localStorage.getItem('access_token');
                 if (!token) {
                     console.error('No access token found.');
-                    return null;
+                    throw new Error('No access token found.'); // Throw an error if no token
                 }
 
                 const headers = {
@@ -311,31 +338,28 @@
                 });
 
                 if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.detail || 'Failed to fetch data');
+                    let errorMessage = `Failed to fetch data (Status: ${response.status})`; // Include status code
+                    try {
+                        const errorData = await response.json();
+                        if (errorData.detail) {
+                            errorMessage = errorData.detail;
+                        } else if (errorData.message) {
+                            errorMessage = errorData.message;
+                        } else {
+                            errorMessage = JSON.stringify(errorData);
+                        }
+                    } catch (jsonError) {
+                        // If parsing as JSON fails, use the raw text
+                        try {
+                            errorMessage = await response.text();
+                        } catch (textError) {
+                            errorMessage = 'Failed to fetch data and could not parse error response';
+                        }
+                    }
+                    throw new Error(errorMessage);
                 }
 
                 return await response.json();
-            }
-
-            // Function to display error messages
-            function displayErrorMessage(element, message) {
-                element.textContent = message;
-                element.classList.add('error-message');
-                element.classList.remove('success-message');
-            }
-
-            // Function to display success messages
-            function displaySuccessMessage(element, message) {
-                element.textContent = message;
-                element.classList.add('success-message');
-                element.classList.remove('error-message');
-            }
-
-            // Function to clear messages
-            function clearMessage(element) {
-                element.textContent = '';
-                element.classList.remove('error-message', 'success-message');
             }
 
             // --- Email Management ---
@@ -343,16 +367,17 @@
             // Fetch and display emails
             async function fetchEmails() {
                 try {
-                    const emails = await fetchDataWithToken('/api/emails'); // Replace with your API endpoint
+                    const emails = await fetchDataWithToken('/api/emails');
+                    console.log("Emails from API:", emails);
                     emailsTable.innerHTML = '';
                     emails.forEach(email => {
+                        console.log("Current email object:", email);
                         const row = emailsTable.insertRow();
                         row.insertCell().textContent = email.team;
                         row.insertCell().textContent = email.email;
                         const actionsCell = row.insertCell();
                         actionsCell.innerHTML = `
-                            <button class="btn btn-edit" data-id="${email._id}">Edit</button>
-                            <button class="btn btn-danger" data-id="${email._id}">Delete</button>
+                            <button class="btn btn-edit" onclick="editEmail('${email._id}')">Edit</button>
                         `;
                     });
                 } catch (error) {
@@ -361,59 +386,34 @@
                 }
             }
 
-            // Open email edit modal
-            emailsTable.addEventListener('click', (event) => {
-                const target = event.target;
-                if (target.classList.contains('btn-edit')) {
-                    const emailId = target.dataset.id; // Get emailId from data-id
-                    const row = target.closest('tr');
-                    const team = row.cells[0].textContent;
-                    const email = row.cells[1].textContent;
-                    document.getElementById('edit-team').value = team;
-                    document.getElementById('edit-email').value = email;
-                    document.getElementById('edit-email-id').value = emailId;
-                    emailModal.style.display = 'block';
-                    clearMessage(emailMessage);
-                }
-                if (target.classList.contains('btn-danger')) {
-                    const emailId = target.dataset.id;
-                    deleteEmail(emailId);
-                }
-            });
-
             // Save email changes
             emailForm.addEventListener('submit', async (event) => {
                 event.preventDefault();
                 const emailId = document.getElementById('edit-email-id').value;
-                const newTeam = document.getElementById('edit-team').value; // Get the new team
                 const newEmail = document.getElementById('edit-email').value;
                 try {
-                    await fetchDataWithToken(`/api/emails/${emailId}`, { // Replace with your API endpoint
+                    await fetchDataWithToken(`/api/emails/${emailId}`, {
                         method: 'PUT',
-                        body: JSON.stringify({ team: newTeam, email: newEmail }) // Send both team and email
+                        body: JSON.stringify({ email: newEmail })
                     });
                     emailModal.style.display = 'none';
                     displaySuccessMessage(emailMessage, 'Email updated successfully!');
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Success',
+                        text: 'Email updated successfully!'
+                    });
                     fetchEmails();
                 } catch (error) {
                     console.error('Error updating email:', error);
                     displayErrorMessage(emailMessage, error.message);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: error.message
+                    });
                 }
             });
-
-            // Delete email
-            async function deleteEmail(emailId) {
-                try {
-                    await fetchDataWithToken(`/api/emails/${emailId}`, { // Replace with your API endpoint
-                        method: 'DELETE'
-                    });
-                    displaySuccessMessage(emailMessage, 'Email deleted successfully!');
-                    fetchEmails();
-                } catch (error) {
-                    console.error('Error deleting email:', error);
-                    displayErrorMessage(emailMessage, error.message);
-                }
-            }
 
             // Close email modal
             emailCloseBtn.addEventListener('click', () => {
@@ -426,7 +426,7 @@
             // Fetch and display admins
             async function fetchAdmins() {
                 try {
-                    const admins = await fetchDataWithToken('/api/admins'); // Replace with your API endpoint
+                    const admins = await fetchDataWithToken('/api/admins');
                     adminsTable.innerHTML = '';
                     admins.forEach(admin => {
                         const row = adminsTable.insertRow();
@@ -472,7 +472,25 @@
                 }
                 if (target.classList.contains('btn-danger')) {
                     const adminId = target.dataset.id;
-                    deleteAdmin(adminId);
+
+                    Swal.fire({
+                        title: 'Are you sure?',
+                        text: "This action cannot be undone!",
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonColor: '#d33',
+                        cancelButtonColor: '#3085d6',
+                        confirmButtonText: 'Yes, delete it!'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            deleteAdmin(adminId);
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Deleted!',
+                                text: 'Admin has been deleted.'
+                            });
+                        }
+                    });
                 }
             });
 
@@ -485,7 +503,7 @@
                 const role = document.getElementById('admin-role').value;
                 const team = document.getElementById('admin-team').value;
                 const method = adminId ? 'PUT' : 'POST';
-                const url = adminId ? `/api/admins/${adminId}` : '/api/admins'; // Replace with your API endpoint
+                const url = adminId ? `/api/admins/${adminId}` : '/api/admins';
                 const body = { username, role, team };
                 if (password) {
                     body.password = password;
@@ -497,17 +515,27 @@
                     });
                     adminModal.style.display = 'none';
                     displaySuccessMessage(adminMessage, 'Admin saved successfully!');
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Success',
+                        text: 'Admin saved successfully!'
+                    });
                     fetchAdmins();
                 } catch (error) {
                     console.error('Error saving admin:', error);
                     displayErrorMessage(adminMessage, error.message);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: error.message
+                    });
                 }
             });
 
             // Delete admin
             async function deleteAdmin(adminId) {
                 try {
-                    await fetchDataWithToken(`/api/admins/${adminId}`, { // Replace with your API endpoint
+                    await fetchDataWithToken(`/api/admins/${adminId}`, {
                         method: 'DELETE'
                     });
                     displaySuccessMessage(adminMessage, 'Admin deleted successfully!');
@@ -530,6 +558,5 @@
         });
 
     </script>
-    <!-- <script src="/static/js/navbar.js"></script> -->
 </body>
 </html>

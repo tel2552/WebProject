@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>รายงานสรุป</title>
+    <link rel="icon" href="/static/favicon.ico" type="image/x-icon">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
@@ -12,7 +13,7 @@
             margin: 0;
             padding: 0;
             display: block;
-            background-image: url("/static/IMG_4022.jpg");
+            background-image: url("/static/img/IMG_4022.jpg");
             background-color: #cccccc;
             background-position: center;
             background-repeat: no-repeat;
@@ -116,6 +117,14 @@
         .btn-search:hover {
             background-color: #0056b3;
         }
+        .status { font-weight: bold; }
+        .status-resolved { color: green; }
+        .status-pending { color: red; }
+        .status-admit { color: orange; }
+        .status-forwarded { color: #1307ff; }
+        .status-complete { color: #28a745; }
+        .status-overdue { color: #800080; } /* New: Purple for Overdue */
+        /* เพิ่ม CSS อื่นๆ ตามต้องการ */
     </style>
 </head>
 <body>
@@ -156,249 +165,45 @@
             
             <label for="dateFilter">วันที่พบปัญหา:</label>
             <input type="date" id="dateFilter">
-            
-            <button id="searchButton" class="btn-search">ค้นหา</button>
+
+            <label for="statusFilter">สถานะ:</label>
+            <select id="statusFilter">
+                <option value="">ทั้งหมด</option>
+                <option value="Pending">Pending</option>
+                <option value="Admit">Admit</option>
+                <option value="Forwarded">Forwarded</option>
+                <option value="Complete">Complete</option>
+                <option value="Resolved">Resolved</option>
+                <option value="Overdue">Overdue</option> <!-- New: Overdue option -->
+            </select>
+
+            <button type="button" id="searchButton" class="btn-search">ค้นหา</button>
         </div>
 
-        <button id="exportButton" class="btn-export">Export to Excel</button>
+        <button type="button" id="exportButton" class="btn-export">Export to Excel</button>
         <table>
             <thead>
                 <tr>
                     <th>เลขที่</th>
                     <th>หัวข้อเรื่อง</th>
                     <th>ชื่อลูกค้า</th>
-                    <th>วันที่พบปัญหา</th>
+                    <th>วันที่พบปัญหา</th> <!-- Assuming this is complaint.date -->
                     <th>ผู้ดำเนินการข้อร้องเรียน</th>
                     <th>หน่วยงาน</th>
                     <th>ระดับความรุนแรง</th>
-                    <th>วันที่แก้ไขปัญหา</th>
-                    <th>การแก้ไขปัญหา</th>
+                    <th>วันที่แก้ไขปัญหา</th> <!-- Assuming this is complaint.complete_date -->
+                    <!-- <th>การแก้ไขปัญหา</th> -->
                     <th>สถานะ</th>
                 </tr>
             </thead>
             <tbody id="complaints-table">
-                <!-- Data from MongoDB will be populated here -->
+                <!-- Data will be populated here by JavaScript -->
+                 <tr><td colspan="10" style="text-align: center;">Loading complaints...</td></tr>
             </tbody>
         </table>
     </div>
-    <script>
-        // Search Functions
-        const searchInput = document.getElementById('searchInput');
-        const severityFilter = document.getElementById('severityFilter');
-        const teamFilter = document.getElementById('teamFilter');
-        const dateFilter = document.getElementById('dateFilter');
-        const searchButton = document.getElementById('searchButton');
-        let allComplaints = [];
-        let complaintCounter = 0; // Initialize a global counter for complaint numbers
-        
-        
-        async function fetchAllComplaints() {
-            try {
-                const response = await fetch("/admin/get-completed-complaints");
-                const complaints = await response.json();
-                allComplaints = complaints;
-                displayComplaints(complaints)
-            } catch (error) {
-                console.error("Failed to fetch all complaints:", error);
-            }
-        }
 
-        async function displayComplaints(complaints) {
-            const tableBody = document.getElementById("complaints-table");
-            tableBody.innerHTML = ""; // Clear existing rows
-            complaintCounter = 0; // Reset the counter when displaying new complaints
-            const userRole = await getUserRole();
-            const userTeam = await getUserTeam();
-            complaints.forEach((complaint, index) => {
-                if (userRole === "admin" && complaint.team !== userTeam) {
-                            return; // Skip to the next complaint
-                        }
-                        
-                complaintCounter++;
-                const row = document.createElement("tr");
-                // Format the date
-                let formattedDate = '-';
-                if (complaint.resolved_date) {
-                    const date = new Date(complaint.resolved_date);
-                    formattedDate = date.toLocaleDateString('en-CA'); // Format to YYYY-MM-DD, change your format here
-                }
-                // Format the complete date
-                let formattedCompleteDate = '-';
-                if (complaint.complete_date) {
-                    const completeDate = new Date(complaint.complete_date);
-                    formattedCompleteDate = completeDate.toLocaleDateString('en-CA'); // Format to YYYY-MM-DD
-                }
-                row.innerHTML = `
-                    <td>${complaintCounter}</td>
-                    <td>${complaint.title}</td>
-                    <td>${complaint.name}</td>
-                    <td>${formattedDate}</td>
-                    <td>${complaint.inspector_name2}</td>
-                    <td>${complaint.team}</td>
-                    <td>${complaint.severity_level}</td>
-                    <td>${formattedCompleteDate}</td>
-                    <td>${complaint.correction2}</td>
-                    <td>${complaint.status}</td>
-                `;
-                tableBody.appendChild(row);
-            });
-        }
-
-        async function getUserRole() {
-            try {
-                const token = localStorage.getItem('access_token');
-                if (!token) {
-                    console.error('No access token found.');
-                    return null;
-                }
-
-                const response = await fetch('/admin/get-userrole', {  // Make sure this endpoint exists and returns the user's role
-                    method: 'GET',
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
-
-                if (response.ok) {
-                    const data = await response.json();
-                    return data.role; // Assuming the server returns { "role": "superadmin" }
-                } else {
-                    console.error('Failed to fetch user role:', response.statusText);
-                    return null;
-                }
-            } catch (error) {
-                console.error('Error fetching user role:', error);
-                return null;
-            }
-        }
-
-        async function getUserTeam() {
-            try {
-                const token = localStorage.getItem('access_token');
-                if (!token) {
-                    console.error('No access token found.');
-                    return null;
-                }
-
-                const response = await fetch('/admin/get-userteam', {
-                    method: 'GET',
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
-
-                if (response.ok) {
-                    const data = await response.json();
-                    return data.team;
-                } else {
-                    console.error('Failed to fetch user team:', response.statusText);
-                    return null;
-                }
-            } catch (error) {
-                console.error('Error fetching user team:', error);
-                return null;
-            }
-        }
-
-        function filterComplaints() {
-            const filterText = searchInput.value.toLowerCase();
-            const filterSeverity = severityFilter.value;
-            const filterTeam = teamFilter.value;
-            const filterDate = dateFilter.value;
-
-            const filteredComplaints = allComplaints.filter(complaint => {
-                const complaintText = (complaint.title + " " + complaint.name).toLowerCase();
-                const complaintDate = complaint.resolved_date ? new Date(complaint.resolved_date).toLocaleDateString('en-CA') : '-';
-
-                const textMatch = complaintText.includes(filterText);
-                const severityMatch = !filterSeverity || complaint.severity_level === filterSeverity;
-                const teamMatch = !filterTeam || complaint.team === filterTeam;
-                const dateMatch = !filterDate || complaintDate === filterDate;
-                
-                return textMatch && severityMatch && teamMatch && dateMatch;
-            });
-            displayComplaints(filteredComplaints);
-        }
-        fetchAllComplaints();
-
-        // fetchComplaints();
-
-        // Function to export data to Excel (Improved)
-        document.getElementById("exportButton").addEventListener("click", () => {
-            // Get table headers
-            const table = document.querySelector("table");
-            const headerRow = table.querySelectorAll("th");
-            const headers = Array.from(headerRow).map(header => header.innerText);
-
-            // Get table data
-            const rows = table.querySelectorAll("#complaints-table tr");
-            const data = [];
-
-            rows.forEach(row => {
-                const rowData = [];
-                const cells = row.querySelectorAll("td");
-                cells.forEach(cell => {
-                    rowData.push(cell.innerText);
-                });
-                data.push(rowData);
-            });
-
-            // Create worksheet
-            const ws = XLSX.utils.aoa_to_sheet([headers, ...data]);
-
-            // Create workbook and add worksheet
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "Complaints");
-
-            // Write and save file
-            XLSX.writeFile(wb, "complaints_report.xlsx");
-        });
-
-        //Search box 
-        // const searchInput = document.getElementById('searchInput');
-        // searchInput.addEventListener('input', () => {
-        //     const filter = searchInput.value.toLowerCase();
-        //     const rows = document.getElementById('complaints-table').getElementsByTagName('tr');
-
-        //     for (let i = 0; i < rows.length; i++) {
-        //         let shouldShow = false;
-        //         const cells = rows[i].getElementsByTagName('td');
-
-        //         for (let j = 0; j < cells.length; j++) {
-        //             if (cells[j].textContent.toLowerCase().includes(filter)) {
-        //                 shouldShow = true;
-        //                 break;
-        //             }
-        //         }
-
-        //         rows[i].style.display = shouldShow ? '' : 'none';
-        //     }
-        // });
-        // Event listeners
-        searchButton.addEventListener("click", filterComplaints);
-
-        async function checkTeamFilterVisibility() {
-            const userRole = await getUserRole();
-            const teamFilterSelect = document.getElementById('teamFilter');
-            const teamFilterLabel = document.getElementById('teamFilterLabel');
-
-            if (userRole === 'admin') {
-                teamFilterSelect.style.display = 'none';
-                teamFilterLabel.style.display = 'none';
-            } else {
-                teamFilterSelect.style.display = 'block';
-                teamFilterLabel.style.display = 'block';
-            }
-        }
-
-        // Call this function after fetching user role and when the page loads
-        document.addEventListener('DOMContentLoaded', () => {
-            fetchAllComplaints().then(() => {
-                checkTeamFilterVisibility();
-            });
-        });
-
-    </script>
-    <!-- <script src="/static/js/navbar.js"></script> -->
+    <!-- โหลด JS Modules -->
+    <script type="module" src="/static/js/admin_download.js"></script>
 </body>
 </html>

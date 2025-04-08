@@ -13,11 +13,6 @@ body {
     min-height: 100vh;
 }
 
-h1 {
-    text-align: center;
-    color: #000000;
-}
-
 form {
     background-color: #ffffff;
     padding: 20px;

@@ -70,19 +70,25 @@
             margin-left: 0; /* ให้เนื้อหากลางจอเมื่อ Navbar ซ่อน */
         }
     }
+    .hidden {
+        display: none;
+    }
 </style>
 
 <!-- ปุ่ม Hamburger -->
-<button class="menu-toggle" onclick="toggleNavbar()">☰</button>
+<!-- <button class="menu-toggle" onclick="toggleNavbar()">☰</button> -->
+<button class="menu-toggle">☰</button>
+
 
 <!-- Navbar -->
 <div class="navbar" id="navbar-container">
-    <a href="/admin_complaints"><i class="fa-solid fa-inbox"></i> คำร้องใหม่</a>
-    <a href="/reports"><i class="fa-solid fa-file-alt"></i> คำร้องของหน่วยงาน</a>
+    <a href="/admin_complaints" class="superadmin-control-link"><i class="fa-solid fa-inbox"></i> คำร้องใหม่</a>
+    <a href="/reports" class="superadmin-control-link"><i class="fa-solid fa-file-alt"></i> คำร้องของหน่วยงาน</a>
     <a href="/forwardeds"><i class="fa-solid fa-check-circle"></i> อนุมัติคำร้อง</a>
     <a href="/admin_download"><i class="fa-solid fa-download"></i> รายงานสรุป</a>
-    <a href="/cancelled_complaints"><i class="fa-solid fa-times-circle"></i> คำร้องที่ยกเลิก</a>
-    <a href="/admin_control" id="admin-control-link" class="hidden"><i class="fa-solid fa-cogs"></i> จัดการข้อมูล</a>
-    <a href="#" onclick="logout()"><i class="fa-solid fa-sign-out-alt"></i> ออกจากระบบ</a>
+    <!-- <a href="/cancelled_complaints"><i class="fa-solid fa-times-circle"></i> คำร้องที่ยกเลิก</a> -->
+    <a href="/admin_control" id="admin-control-link"><i class="fa-solid fa-cogs"></i> จัดการข้อมูล</a>
+    <a href="#" id="logout-link"><i class="fa-solid fa-sign-out-alt"></i> ออกจากระบบ</a>
 </div>
-<script src="/static/js/navbar.js"></script>
+<!-- <script src="/static/js/navbar.js"></script> -->
+<script type="module" src="/static/js/navbar.js"></script>

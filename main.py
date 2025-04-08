@@ -11,7 +11,7 @@ from database import users_collection, complaints_collection, email_recipients_c
 from auth import get_password_hash, verify_password, create_access_token, get_current_user
 from email_service import send_email
 from delete_service import start_scheduler, delete_old_cancelled_complaints
-from bson import ObjectId
+from bson import ObjectId , errors
 from bson.errors import InvalidId
 from collections import OrderedDict
 from pymongo.errors import ConnectionFailure
@@ -23,17 +23,6 @@ app = FastAPI()
 # Static Files & Templates
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
-
-# Models
-# Mapping ระหว่างประเภทข้อร้องเรียนกับอีเมลปลายทาง
-# EMAIL_RECIPIENTS = {
-#     "ด้านบุคลากร": "phubasesri@pim.ac.th",
-#     "การบริการงานวิจัย": "nuttawutwon@pim.ac.th",
-#     "การบริการวิชาการ": "academic@example.com",
-#     "การบริหารจัดการของ PIM": "management@example.com",
-#     "การบริการแก่นักศึกษา": "telergamer@gmail.com",
-#     "อื่นๆ": "other@example.com"
-# }
 
 class User(BaseModel):
     username: str
@@ -59,6 +48,10 @@ class Complaint(BaseModel):
 class ComplaintUpdate(BaseModel):
     status: str
 
+class Email(BaseModel):
+    team: str
+    email: str
+
 # Define a Pydantic model for the expected JSON payload
 class ForwardComplaintPayload(BaseModel):
     severity_level: str
@@ -83,8 +76,54 @@ class ForwardComplaintPayload(BaseModel):
 
 # Routes
 
-# Render Login Page
+# Render first Page
 @app.get("/", response_class=HTMLResponse)
+async def show_first_page(request: Request):
+    return templates.TemplateResponse("complaint.html", {"request": request})
+
+# async def show_login_page(request: Request, access_token: Optional[str] = Cookie(None)):
+#     if access_token:
+#         try:
+#             # Verify the token
+#             payload = jwt.decode(access_token, SECRET_KEY, algorithms=[ALGORITHM])
+#             username: str = payload.get("sub")
+#             role: str = payload.get("role")
+
+#             # Check if the user exists in the database
+#             user = users_collection.find_one({"username": username})
+#             if user is not None:
+#                     return RedirectResponse(url="/admin_complaints", status_code=303)
+#             else:
+#                 # User not found, treat as if no token
+#                 return templates.TemplateResponse("login.html", {"request": request})
+
+#         except JWTError:
+#             # Token is invalid, treat as if no token
+#             return templates.TemplateResponse("login.html", {"request": request})
+#     else:
+#         # No token found, show the login page
+#         return templates.TemplateResponse("login.html", {"request": request})
+
+# Handle Login
+@app.post("/login")
+async def login_user(response: Response, username: str = Form(...), password: str = Form(...)): # add response: Response
+    try:
+        db_user = users_collection.find_one({"username": username})
+        if not db_user or not verify_password(password, db_user["password"]):
+            raise HTTPException(status_code=400, detail="Incorrect username or password")
+
+        token = create_access_token(data={"sub": db_user["username"], "role": db_user["role"]}, expires_delta=timedelta(minutes=120))
+        redirect_url = "/admin_complaints" if db_user["role"] in ["admin", "alladmin"] else "/forwardeds"
+        
+        # Set the token in a cookie (optional, but good for fallback)
+        response.set_cookie(key="access_token", value=token, httponly=True, max_age=3600) # 1 hour
+        
+        return JSONResponse(content={"token": token, "redirect_url": redirect_url})
+    except ConnectionFailure as e:
+        raise HTTPException(status_code=500, detail="Database connection failed")
+
+# Render login Page
+@app.get("/login", response_class=HTMLResponse)
 async def show_login_page(request: Request, access_token: Optional[str] = Cookie(None)):
     if access_token:
         try:
@@ -95,12 +134,8 @@ async def show_login_page(request: Request, access_token: Optional[str] = Cookie
 
             # Check if the user exists in the database
             user = users_collection.find_one({"username": username})
-            if user:
-                # Redirect based on role
-                if role in ["admin", "superadmin", "alladmin"]:
+            if user is not None:
                     return RedirectResponse(url="/admin_complaints", status_code=303)
-                else:
-                    return RedirectResponse(url="/complaint", status_code=303)
             else:
                 # User not found, treat as if no token
                 return templates.TemplateResponse("login.html", {"request": request})
@@ -111,24 +146,6 @@ async def show_login_page(request: Request, access_token: Optional[str] = Cookie
     else:
         # No token found, show the login page
         return templates.TemplateResponse("login.html", {"request": request})
-
-# Handle Login
-@app.post("/login")
-async def login_user(response: Response, username: str = Form(...), password: str = Form(...)): # add response: Response
-    try:
-        db_user = users_collection.find_one({"username": username})
-        if not db_user or not verify_password(password, db_user["password"]):
-            raise HTTPException(status_code=400, detail="Incorrect username or password")
-
-        token = create_access_token(data={"sub": db_user["username"], "role": db_user["role"]}, expires_delta=timedelta(minutes=60))
-        redirect_url = "/admin_complaints" if db_user["role"] in ["admin", "superadmin", "alladmin"] else "/complaint"
-        
-        # Set the token in a cookie (optional, but good for fallback)
-        response.set_cookie(key="access_token", value=token, httponly=True, max_age=3600) # 1 hour
-        
-        return JSONResponse(content={"token": token, "redirect_url": redirect_url})
-    except ConnectionFailure as e:
-        raise HTTPException(status_code=500, detail="Database connection failed")
 
 # Render Register Page
 @app.get("/register", response_class=HTMLResponse)
@@ -163,17 +180,34 @@ async def get_emails(current_user: dict = Depends(get_current_user)):
         raise HTTPException(status_code=403, detail="Insufficient permissions")
     emails = list(email_recipients_collection.find())
     for email in emails:
-        email["_id"] = str(email["_id"])
+        email["email_id"] = str(email["_id"])  # 👈 เพิ่ม field ใหม่ชื่อ email_id
+        del email["_id"]                       # 👈 ลบ _id ออกเพื่อไม่ให้ frontend สับสน
     return emails
+
 
 @app.put("/api/emails/{email_id}")
 async def update_email(email_id: str, email: Email, current_user: dict = Depends(get_current_user)):
     if current_user["role"] not in ["superadmin", "alladmin"]:
         raise HTTPException(status_code=403, detail="Insufficient permissions")
-    result = email_recipients_collection.update_one({"_id": ObjectId(email_id)}, {"$set": email.dict()})
+    
+    # Validate email_id format
+    try:
+        object_id = ObjectId(email_id)
+    except errors.InvalidId:
+        raise HTTPException(status_code=400, detail="Invalid email ID format")
+
+    email_data = email.dict()
+    del email_data["team"]
+
+    result = email_recipients_collection.update_one(
+        {"_id": object_id}, {"$set": email_data}
+    )
+    
     if result.modified_count == 0:
         raise HTTPException(status_code=404, detail="Email not found")
+    
     return {"message": "Email updated"}
+
 
 @app.delete("/api/emails/{email_id}")
 async def delete_email(email_id: str, current_user: dict = Depends(get_current_user)):
@@ -300,7 +334,8 @@ def get_complaint(id: str):
 # New Route: Get Completed Complaints
 @app.get("/admin/get-completed-complaints")
 async def get_completed_complaints():
-    complaints = complaints_collection.find({"status": "Complete"})
+    # complaints = complaints_collection.find({"status": "Complete"})
+    complaints = complaints_collection.find()
     complaints_list = []
     for complaint in complaints:
         complaints_list.append({
@@ -374,6 +409,25 @@ async def complete_complaint(id: str, request: Request):  # เพิ่ม `req
         
         # ส่งข้อมูลไปยัง admin_complete_complaint.html
         return templates.TemplateResponse("admin_complete_complaint.html",{
+            "request": request,
+            "complaint": complaint,
+            "admin_name": username
+        }  # ใช้ `request` จากพารามิเตอร์
+        )
+    except InvalidId:
+        raise HTTPException(status_code=400, detail=f"Invalid complaint ID: {id}") 
+    
+@app.get("/admin/view-complete-complaint/{id}", response_class=HTMLResponse)
+async def view_complete_complaint(id: str, request: Request):  # เพิ่ม `request: Request`
+    try:
+        # ตรวจสอบว่า ID ถูกต้อง
+        username = users_collection.find_one({"username": ObjectId(id)})
+        complaint = complaints_collection.find_one({"_id": ObjectId(id)})
+        if not complaint:
+            raise HTTPException(status_code=404, detail="Complaint not found")
+        
+        # ส่งข้อมูลไปยัง admin_complete_complaint.html
+        return templates.TemplateResponse("admin_view_complete_complaint.html",{
             "request": request,
             "complaint": complaint,
             "admin_name": username
@@ -663,61 +717,60 @@ def undo_complaint(id: str, approver_recommendation: str = Form(...)):
     else:
         return {"error": "Failed to complete complaint"}
     
-@app.post("/admin/cancel-complaint/{id}")
-async def cancel_complaint(id: str, cancellation_reason: str = Form(...), approver_recommendation: str = Form(...)):
-    try:
-        complaint = complaints_collection.find_one({"_id": ObjectId(id)})
-        if not complaint:
-            raise HTTPException(status_code=404, detail="Complaint not found")
+# @app.post("/admin/cancel-complaint/{id}")
+# async def cancel_complaint(id: str, cancellation_reason: str = Form(...), approver_recommendation: str = Form(...)):
+#     try:
+#         complaint = complaints_collection.find_one({"_id": ObjectId(id)})
+#         if not complaint:
+#             raise HTTPException(status_code=404, detail="Complaint not found")
 
-        # Update complaint status to 'Cancelled' and add cancellation reason
-        update_result = complaints_collection.update_one(
-            {"_id": ObjectId(id)},
-            {
-                "$set": {
-                    "status": "Cancelled",
-                    "cancellation_reason": cancellation_reason,
-                    "cancelled_date": datetime.utcnow(),
-                    "deletion_scheduled": datetime.utcnow() + timedelta(days=30),
-                    "approver_recommendation": approver_recommendation,
-                }
-            }
-        )
+#         # Update complaint status to 'Cancelled' and add cancellation reason
+#         update_result = complaints_collection.update_one(
+#             {"_id": ObjectId(id)},
+#             {
+#                 "$set": {
+#                     "status": "Cancelled",
+#                     "cancellation_reason": cancellation_reason,
+#                     "cancelled_date": datetime.utcnow(),
+#                     "deletion_scheduled": datetime.utcnow() + timedelta(days=30),
+#                     "approver_recommendation": approver_recommendation,
+#                 }
+#             }
+#         )
 
-        if update_result.modified_count == 1:
-            return JSONResponse(content={"message": "Complaint cancelled successfully"})
-        else:
-            return HTTPException(status_code=404, detail="Complaint not found or already cancelled")
-    except InvalidId:
-        raise HTTPException(status_code=400, detail=f"Invalid complaint ID: {id}")
+#         if update_result.modified_count == 1:
+#             return JSONResponse(content={"message": "Complaint cancelled successfully"})
+#         else:
+#             return HTTPException(status_code=404, detail="Complaint not found or already cancelled")
+#     except InvalidId:
+#         raise HTTPException(status_code=400, detail=f"Invalid complaint ID: {id}")
 
-@app.post("/admin/undo-cancellation/{id}")
-async def undo_cancellation(id: str):
-    try:
-        complaint = complaints_collection.find_one({"_id": ObjectId(id)})
-        if not complaint:
-            raise HTTPException(status_code=404, detail="Complaint not found")
+# @app.post("/admin/undo-cancellation/{id}")
+# async def undo_cancellation(id: str):
+#     try:
+#         complaint = complaints_collection.find_one({"_id": ObjectId(id)})
+#         if not complaint:
+#             raise HTTPException(status_code=404, detail="Complaint not found")
 
-        # Update complaint status to 'Admit' and remove cancellation reason
-        update_result = complaints_collection.update_one(
-            {"_id": ObjectId(id)},
-            {
-                "$set": {
-                    "status": "Admit",
-                    "cancellation_reason": None,
-                    "cancelled_date": None,
-                    "deletion_scheduled": None,
-                    # "approver_recommendation": approver_recommendation,
-                }
-            }
-        )
-        if update_result.modified_count == 1:
-            return {"message": "Complaint cancellation undone successfully"}
-        else:
-            return HTTPException(status_code=404, detail="Complaint not found or already undone")
+#         # Update complaint status to 'Admit' and remove cancellation reason
+#         update_result = complaints_collection.update_one(
+#             {"_id": ObjectId(id)},
+#             {
+#                 "$set": {
+#                     "status": "Admit",
+#                     "cancellation_reason": None,
+#                     "cancelled_date": None,
+#                     "deletion_scheduled": None,
+#                 }
+#             }
+#         )
+#         if update_result.modified_count == 1:
+#             return {"message": "Complaint cancellation undone successfully"}
+#         else:
+#             return HTTPException(status_code=404, detail="Complaint not found or already undone")
 
-    except InvalidId:
-        raise HTTPException(status_code=400, detail=f"Invalid complaint ID: {id}")
+#     except InvalidId:
+#         raise HTTPException(status_code=400, detail=f"Invalid complaint ID: {id}")
 
 # start task
 start_scheduler()

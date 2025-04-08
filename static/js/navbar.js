@@ -1,40 +1,27 @@
-// ฟังก์ชันเปิด-ปิด Navbar และเปลี่ยนไอคอน
-function toggleNavbar() {
-    const navbar = document.getElementById("navbar-container");
-    const menuToggle = document.querySelector(".menu-toggle");
+// navbar.js
+import { getAccessToken, removeAccessToken, getUserData } from './token-manager.js'; // Import getUserData เพิ่ม
 
-    navbar.classList.toggle("show");
-
-    // เช็คว่าตอนนี้เมนูเปิดหรือปิด แล้วเปลี่ยนไอคอน
-    if (navbar.classList.contains("show")) {
-        menuToggle.innerHTML = "✖"; // เปลี่ยนเป็นไอคอนปิด
-    } else {
-        menuToggle.innerHTML = "☰"; // เปลี่ยนกลับเป็นไอคอนเมนู
-    }
-}
-
-// ซ่อน Navbar เมื่อคลิกที่ลิงก์ และเปลี่ยนไอคอนกลับ
-document.querySelectorAll(".navbar a").forEach(link => {
-    link.addEventListener("click", () => {
-        const navbar = document.getElementById("navbar-container");
-        const menuToggle = document.querySelector(".menu-toggle");
-
-        navbar.classList.remove("show");
-        menuToggle.innerHTML = "☰"; // กลับเป็นไอคอนเมนู
+// --- Logout Function ---
+const logoutLink = document.getElementById("logout-link");
+if (logoutLink) {
+    logoutLink.addEventListener("click", (event) => {
+        event.preventDefault();
+        logout();
     });
-});
+}
 
 async function logout() {
     try {
-        const response = await fetch("/logout", { method: "GET" });
-        const data = await response.json();
+        // ใช้ GET หรือ POST ตามที่ backend กำหนด, ถ้ามีการจัดการ session/token ฝั่ง server อาจจะใช้ POST
+        const response = await fetch("/logout", { method: "GET" }); // หรือ POST
+        // ไม่จำเป็นต้อง parse JSON ถ้า backend ไม่ได้ส่ง JSON กลับมาตอน logout สำเร็จ
+        // const data = await response.json();
 
         if (response.ok) {
-            if (data.clearLocalStorage) {
-                localStorage.removeItem("userData");
-                localStorage.removeItem("userRole");
-            }
-            localStorage.removeItem("access_token");
+            // ลบข้อมูลที่เกี่ยวกับ user ออกจาก localStorage
+            localStorage.removeItem("userData");
+            // localStorage.removeItem("userRole"); // ไม่จำเป็นถ้าใช้ userData
+            removeAccessToken(); // ลบ token
 
             Swal.fire({
                 icon: "success",
@@ -42,124 +29,141 @@ async function logout() {
                 showConfirmButton: false,
                 timer: 1500,
             }).then(() => {
-                window.location.href = "/";
+                window.location.href = "/login"; // ไปหน้า login
             });
         } else {
-            // Handle server-side errors
-            let errorMessage = "Failed to logout";
-            if (data && data.detail) {
-                errorMessage = `Error: ${data.detail}`;
-            } else if (data && data.message) {
-                errorMessage = `Error: ${data.message}`;
+            // ลองอ่าน error message ถ้ามี
+            let errorMessage = "ออกจากระบบไม่สำเร็จ";
+            try {
+                const errorData = await response.json();
+                errorMessage = errorData.detail || errorData.message || errorMessage;
+            } catch (e) {
+                // ไม่ใช่ JSON response
+                errorMessage = `ออกจากระบบไม่สำเร็จ (HTTP ${response.status})`;
             }
+            console.error("Logout failed:", errorMessage);
             Swal.fire({
                 icon: "error",
                 title: errorMessage,
                 showConfirmButton: true,
             });
+             // แม้จะ logout ไม่สำเร็จฝั่ง server ก็ควรลบ token ฝั่ง client
+             removeAccessToken();
+             localStorage.removeItem("userData");
+             // อาจจะ redirect ไปหน้า login เลยก็ได้
+             // window.location.href = "/login";
         }
     } catch (error) {
-        // Handle network or other client-side errors
         console.error("Error during logout:", error);
         Swal.fire({
             icon: "error",
-            title: "Failed to logout",
-            text: "An unexpected error occurred.",
+            title: "เกิดข้อผิดพลาดในการออกจากระบบ",
+            text: "กรุณาลองใหม่อีกครั้ง",
             showConfirmButton: true,
         });
+         // ลบ token และ cache เผื่อกรณี network error
+         removeAccessToken();
+         localStorage.removeItem("userData");
     }
 }
 
-// async function checkTokenAndRedirect() {
-//     const token = localStorage.getItem('access_token');
-//     if (!token) {
-//         // No token found, redirect to login
-//         Swal.fire({
-//             icon: 'error',
-//             title: 'เกิดข้อผิดพลาด!',
-//             text: "คุณยังไม่ได้เข้าสู่ระบบ",
-//             confirmButtonText: 'ตกลง',
-//         }).then(()=>{
-//             window.location.href = "/"; 
-//         });
-//     }
-//     const userRole = await getUserRole();
-//     if (userRole === "superadmin") {
-//         document.getElementById("admin-control-link").classList.remove("hidden");
-//     }
-// }
+// --- Navbar Toggle Function ---
+function toggleNavbar() {
+    const navbar = document.getElementById("navbar-container");
+    const menuToggle = document.querySelector(".menu-toggle");
 
-async function checkUserRole() {
-    const cachedRole = localStorage.getItem("userRole");
-    const adminControlLink = document.getElementById("admin-control-link");
-    if (!adminControlLink) return;
+    if (!navbar || !menuToggle) return; // ป้องกัน error ถ้า element ไม่มี
 
-    if (cachedRole) {
-        updateAdminControlLink(cachedRole);
-        return;
-    }
+    navbar.classList.toggle("show");
 
-    try {
-        const token = localStorage.getItem("access_token");
-        if (!token) {
-            adminControlLink.classList.add("hidden");
-            return;
+    menuToggle.textContent = navbar.classList.contains("show") ? "✖" : "☰";
+}
+
+// --- Hide Navbar on Link Click ---
+document.querySelectorAll(".navbar a").forEach(link => {
+    link.addEventListener("click", () => {
+        const navbar = document.getElementById("navbar-container");
+        const menuToggle = document.querySelector(".menu-toggle");
+        if (navbar && menuToggle && navbar.classList.contains("show")) {
+            navbar.classList.remove("show");
+            menuToggle.textContent = "☰";
         }
-
-        const response = await fetch("/admin/get-userrole", {
-            method: "GET",
-            headers: { Authorization: `Bearer ${token}` },
-        });
-
-        if (response.ok) {
-            const data = await response.json();
-            const userRole = data.role;
-            localStorage.setItem("userRole", userRole); // Cache the role
-            updateAdminControlLink(userRole);
-        } else {
-            adminControlLink.classList.add("hidden");
-            adminControlLink.removeEventListener("click", preventDefaultAndRedirect);
-            adminControlLink.addEventListener("click", preventDefaultAndAlert);
-        }
-    } catch (error) {
-        console.error("Error fetching user role:", error);
-        adminControlLink.classList.add("hidden");
-        adminControlLink.removeEventListener("click", preventDefaultAndRedirect);
-        adminControlLink.addEventListener("click", preventDefaultAndAlert);
-    }
-}
-
-function updateAdminControlLink(userRole) {
-    const adminControlLink = document.getElementById("admin-control-link");
-    if (userRole === "alladmin") {
-        adminControlLink.classList.remove("hidden");
-        adminControlLink.href = "/admin_control";
-        adminControlLink.removeEventListener("click", preventDefaultAndAlert);
-        adminControlLink.addEventListener("click", preventDefaultAndRedirect);
-    } else {
-        adminControlLink.classList.add("hidden");
-        adminControlLink.removeEventListener("click", preventDefaultAndRedirect);
-        adminControlLink.addEventListener("click", preventDefaultAndAlert);
-    }
-}
-
-
-document.addEventListener("DOMContentLoaded", () => {
-    console.log("Navbar script loaded successfully!");
-    checkUserRole();
-    // checkTokenAndRedirect();
+    });
 });
 
-function preventDefaultAndRedirect(event) {
-    event.preventDefault();
-    window.location.href = document.getElementById("admin-control-link").href;
-}
+// --- DOMContentLoaded Event Listener ---
+document.addEventListener("DOMContentLoaded", async () => { // ทำให้เป็น async function
+    console.log("Navbar script loaded successfully!");
 
-function preventDefaultAndAlert(event) {
-    event.preventDefault();
-    Swal.fire({
-        icon: "warning",
-        title: "คุณไม่มีสิทธิ์เข้าถึงหน้านี้",
-        showConfirmButton: true,
-    });
-}
+    // Add event listener for the toggle button
+    const toggleButton = document.querySelector(".menu-toggle");
+    if (toggleButton) {
+        toggleButton.addEventListener("click", toggleNavbar);
+    }
+
+    // --- ตรวจสอบและซ่อนลิงก์ Admin Control ---
+    const adminControlLink = document.getElementById('admin-control-link');
+    if (adminControlLink) { // ตรวจสอบก่อนว่า element มีอยู่จริง
+        try {
+            console.log("Checking user role for Admin Control link...");
+            const userData = await getUserData(); // เรียกใช้ getUserData() ที่ import มา
+
+            if (userData && userData.role === 'alladmin') {
+                // ถ้ามีข้อมูล และ role เป็น 'alladmin' ให้แสดงลิงก์
+                adminControlLink.style.display = ''; // หรือ 'block', 'inline-block' ตาม default CSS
+                console.log("Admin control link shown for role:", userData.role);
+            } else {
+                // ถ้าไม่มีข้อมูล หรือ role ไม่ใช่ 'alladmin' ให้ซ่อนลิงก์
+                adminControlLink.style.display = 'none';
+                if (userData) {
+                    console.log("Admin control link hidden for role:", userData.role);
+                } else {
+                    console.log("Admin control link hidden (no user data or failed fetch).");
+                }
+            }
+        } catch (error) {
+            // กรณีเกิด error ตอนเรียก getUserData (เช่น token หมดอายุ หรือ network error)
+            console.error("Error checking user role for navbar:", error);
+            adminControlLink.style.display = 'none'; // ซ่อนลิงก์เมื่อเกิดข้อผิดพลาด
+        }
+    } else {
+        console.warn("Element with ID 'admin-control-link' not found.");
+    }
+
+    // --- ตรวจสอบและซ่อนลิงก์ superadmin control link ---
+    const superadminControlLinks = document.querySelectorAll('.superadmin-control-link');
+    if (superadminControlLinks) { // ตรวจสอบก่อนว่า element มีอยู่จริง
+        try {
+            console.log("Checking user role for Admin Control link...");
+            const userData = await getUserData(); // เรียกใช้ getUserData() ที่ import มา
+
+            if (userData && userData.role === 'superadmin') {
+                // ถ้ามีข้อมูล และ role เป็น 'alladmin' ให้แสดงลิงก์
+                superadminControlLinks.forEach(link => {
+                    link.style.display = 'none';
+                });
+                // หรือ 'block', 'inline-block' ตาม default CSS
+                console.log("Admin control link shown for role:", userData.role);
+            } else {
+                // ถ้าไม่มีข้อมูล หรือ role ไม่ใช่ 'alladmin' ให้ซ่อนลิงก์
+                superadminControlLinks.forEach(link => {
+                    link.style.display = 'none';
+                });                
+                if (userData) {
+                    console.log("Admin control link hidden for role:", userData.role);
+                } else {
+                    console.log("Admin control link hidden (no user data or failed fetch).");
+                }
+            }
+        } catch (error) {
+            // กรณีเกิด error ตอนเรียก getUserData (เช่น token หมดอายุ หรือ network error)
+            console.error("Error checking user role for navbar:", error);
+            superadminControlLinks.forEach(link => {
+                link.style.display = 'none';
+            });
+             // ซ่อนลิงก์เมื่อเกิดข้อผิดพลาด
+        }
+    } else {
+        console.warn("Element with ID 'superadminControlLinks' not found.");
+    }
+});

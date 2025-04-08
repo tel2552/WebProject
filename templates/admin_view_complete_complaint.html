@@ -327,12 +327,6 @@
             border-top: 1px solid #000000;
             margin: 20px 0;
         }
-        .button-container {
-            display: flex;
-            justify-content: center;
-            gap: 20px;
-            margin-top: 20px;
-        }
     </style>
 </head>
 <body>
@@ -483,12 +477,8 @@
         </fieldset>
     <fieldset class="correction-section">
         <label for="approver-recommendation">ข้อแนะนำ/เสนอแนะ จากผู้อนุมัติ:</label>
-        <textarea id="approver-recommendation" name="approver_recommendation" rows="3"></textarea>
+        <textarea id="approver-recommendation" name="approver_recommendation" rows="3" readonly></textarea>
     </fieldset>
-    <div class="button-container">
-        <button type="submit" class="btn-save">อนุมัติข้อร้องเรียน</button>
-        <button type="button" id="undo-button" class="btn-delete">ปัดตกคำร้อง</button>
-    </div>
     </form>
     <script>
         // ดึงข้อมูลคำร้องจาก URL (เช่น /forward-complaint/{id})
@@ -555,6 +545,7 @@
             document.getElementById("inspection-date3").value = complaint.inspection_date3;
             document.getElementById("inspection-date4").value = complaint.inspection_date4;
             document.getElementById("inspection-date5").value = complaint.inspection_date5;
+            document.getElementById("approver-recommendation").value = complaint.approver_recommendation;
             // Load and display recipients
             if (complaint.recipients && complaint.recipients.length > 0) {
               recipients = complaint.recipients; // Update the global recipients array
@@ -567,11 +558,6 @@
                 severityRadioButton.checked = true;
             }
         }
-        document.addEventListener("DOMContentLoaded", function() {
-            loadComplaint();
-            loadAdminName();
-        });
-
         // อัปเดตตารางผู้รับเรื่อง
         function updateRecipientsTable() {
             const tableBody = document.querySelector("#recipients-table tbody");
@@ -589,82 +575,8 @@
             });
         }
 
-        // อนุมัติข้อร้องเรียน
-        document.getElementById("correction-form").addEventListener("submit", async (e) => {
-            e.preventDefault();
-
-            // Collect all form data
-            const form = e.target;
-            const formData = new FormData(form);
-            const approverRecommendation = document.getElementById('approver-recommendation').value;
-            const response = await fetch(`/admin/complete-complaint/${complaintId}`, {
-                method: "POST",
-                body: formData
-            });
-
-            if (response.ok) {
-                Swal.fire({
-                    icon: 'success',
-                    title: 'ส่งเรื่องร้องเรียนเรียบร้อยแล้ว!',
-                    text: 'เราได้รับเรื่องร้องเรียนของคุณแล้ว',
-                    confirmButtonText: 'ตกลง',
-                    timer: 3000, // Automatically close after 3 seconds
-                    timerProgressBar: true,
-                }).then(() => {
-                    // form.reset(); //reset form
-                    window.location.href = "/forwardeds"; // ไปยังหน้ารายการคำร้อง
-                });
-            } else {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'เกิดข้อผิดพลาด!',
-                    text: 'เกิดข้อผิดพลาดในการส่งเรื่องร้องเรียน กรุณาลองใหม่อีกครั้ง',
-                    confirmButtonText: 'ตกลง',
-                });
-            }
-        });
-
-        // ปัดตกอนุมัติข้อร้องเรียน
-        document.getElementById("undo-button").addEventListener("click", async (e) => {
-            e.preventDefault();
-            const approverRecommendation = document.getElementById('approver-recommendation').value;
-            try {
-                const response = await fetch(`/admin/undo-complaint/${complaintId}`, {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/x-www-form-urlencoded",
-                    },
-                    body: `approver_recommendation=${encodeURIComponent(approverRecommendation)}`,
-                });
-
-                if (response.ok) {
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'ปัดตกคำร้องเรียบร้อยแล้ว!',
-                        showConfirmButton: false,
-                        timer: 1500,
-                        timerProgressBar: true,
-                    }).then(() => {
-                        window.location.href = "/forwardeds"; // Redirect to forwardeds page
-                    });
-                } else {
-                    const error = await response.json();
-                    Swal.fire({
-                        icon: 'error',
-                        title: `เกิดข้อผิดพลาด: ${error.detail}`,
-                        showConfirmButton: true,
-                    })
-                    console.error("Failed to undo cancellation:", error);
-                }
-            } catch (error) {
-                Swal.fire({
-                    icon: 'error',
-                    title: `Failed to undo cancellation`,
-                    showConfirmButton: true,
-                })
-                console.error("Error during undo cancellation:", error);
-            }
-        });
+        loadAdminName();
+        loadComplaint();
     </script>
 </body>
 </html>

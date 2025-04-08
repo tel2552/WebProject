@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>อนุมัติคำร้อง</title>
+    <link rel="icon" href="/static/favicon.ico" type="image/x-icon">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
         body {
@@ -11,7 +12,7 @@
             margin: 0;
             padding: 0;
             display: block;
-            background-image: url("/static/IMG_4022.jpg");
+            background-image: url("/static/img/IMG_4022.jpg");
             background-color: #cccccc;
             background-position: center;
             background-repeat: no-repeat;
@@ -85,6 +86,10 @@
         .status-forwarded {
             color: #1307ff;
         }
+        
+        .status-complete {
+            color: #28a745; /* Green color for complete status */
+        }
 
         .btn-update {
             color: white;
@@ -96,6 +101,18 @@
 
         .btn-update:hover {
             background-color: #0056b3;
+        }
+
+        .btn-success {
+            color: white;
+            background-color: #28a745;
+            border: none;
+            padding: 5px 10px;
+            cursor: pointer;
+        }
+
+        .btn-success:hover {
+            background-color: #218838;
         }
     </style>
 </head>
@@ -146,8 +163,8 @@
                 const userTeam = await getUserTeam();
 
                 complaints.forEach(complaint => {
-                    // แสดงเฉพาะคำร้องที่มีสถานะเป็น "Forwarded"
-                    if (complaint.status === "Forwarded") {
+                    // แสดงเฉพาะคำร้องที่มีสถานะเป็น "Forwarded" หรือ "Complete"
+                    if (complaint.status === "Forwarded" || complaint.status === "Complete") {
                         if (userRole === "admin" && complaint.team !== userTeam) {
                             return; // Skip to the next complaint
                         }
@@ -155,14 +172,31 @@
                         const row = document.createElement("tr");
 
                         let approveButton = '';
-                        if (userRole === 'superadmin' || userRole === 'alladmin') {
+                        if (complaint.status === "Forwarded") {
+                            if (userRole === 'superadmin' || userRole === 'alladmin') {
+                                approveButton = `
+                                    <form action="/admin/complete-complaint/${complaint._id}" method="get">
+                                        <button type="submit" class="btn-update">Approve</button>
+                                    </form>
+                                `;
+                            } else {
+                                approveButton = `<p>No permission</p>`
+                            }
+                        } else if (complaint.status === "Complete") {
                             approveButton = `
-                                <form action="/admin/complete-complaint/${complaint._id}" method="get">
-                                    <button type="submit" class="btn btn-success">Approve</button>
+                                <form action="/admin/view-complete-complaint/${complaint._id}" method="get">
+                                    <button type="submit" class="btn-success">Veiw</button>
                                 </form>
                             `;
                         } else {
                         approveButton = `<p>No permission</p>`
+                        }
+                        // Add class based on status
+                        let statusClass = "status";
+                        if (complaint.status === "Forwarded") {
+                            statusClass += " status-forwarded";
+                        } else if (complaint.status === "Complete") {
+                            statusClass += " status-complete";
                         }
 
                         row.innerHTML = `
@@ -172,7 +206,7 @@
                             <td>${complaint.date}</td>
                             <td>${complaint.contact}</td>
                             <td>${complaint.team}</td>
-                            <td class="status status-forwarded">
+                            <td class="${statusClass}">
                                 ${complaint.status}
                             </td>
                             <td>

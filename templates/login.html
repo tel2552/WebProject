@@ -2,7 +2,7 @@
 <html lang="en">
 <style>
     body {
-        background-image: url("/static/IMG_4022.jpg");
+        background-image: url("/static/img/IMG_4022.jpg");
         background-color: #cccccc;
         background-position: center;
         background-repeat: no-repeat;
@@ -11,85 +11,25 @@
         background-size: 100% 100%;
     }
 
-    /* Style for the modal */
-    .modal {
-        display: none;
-        position: fixed;
-        z-index: 1000; /* Ensure the modal is on top */
-        left: 0;
-        top: 0;
-        width: 100%;
-        height: 100%;
-        overflow: auto;
-        background-color: rgba(0, 0, 0, 0.4);
-    }
+    h1 {
+            color: #fff; /* White text for contrast */
+            text-align: center;
+            padding: 20px;
+            background: linear-gradient(45deg, #006400, #00b894); /* Gradient background */
+            border-radius: 10px;
+            margin-bottom: 30px;
+            max-width: 50%;
+            margin-left: 25%;
+            margin-right: 15%;
+            transform: translateX(-50%); /* /* Center the title */
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Subtle shadow */
+        }
 
-    .modal-content {
-        background-color: #fefefe;
-        margin: 15% auto;
-        padding: 20px;
-        border: 1px solid #888;
-        width: 80%;
-        max-width: 600px;
-        border-radius: 5px;
-        position: relative; /* Required for absolute positioning of close button */
-    }
-
-    .close {
-        color: #aaa;
-        position: absolute;
-        top: 10px;
-        right: 20px;
-        font-size: 28px;
-        font-weight: bold;
-        cursor: pointer;
-    }
-
-    .close:hover,
-    .close:focus {
-        color: black;
-        text-decoration: none;
-        cursor: pointer;
-    }
-
-    #termsCheckbox {
-        display: flex;
-        align-items: center;
-        text-align: left;
-        gap: 8px;
-    }
-
-    #termsAgree {
-        width: 16px;
-        height: 16px;
-        margin: 0;
-    }
-
-    #agreeBtn {
-        margin-top: 10px;
-        background-color: #4CAF50;
-        color: white;
-        padding: 10px 20px;
-        border: none;
-        border-radius: 4px;
-        cursor: pointer;
-        opacity: 0.5;
-        pointer-events: none;
-    }
-
-    #agreeBtn.enabled {
-        opacity: 1;
-        pointer-events: auto;
-    }
-
-    #cancelBtn {
-        margin-top: 10px;
-        background-color: #f44336;
-        color: white;
-        padding: 10px 20px;
-        border: none;
-        border-radius: 4px;
-        cursor: pointer;
+    p {
+        text-align: center;
+        color: #1d1d1d; /* White text for contrast */
+        font-size: 1.2em;
+        margin-top: 20px;
     }
 </style>
 
@@ -97,8 +37,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>เข้าสู่ระบบ</title>
+    <link rel="icon" href="/static/favicon.ico" type="image/x-icon">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="/static/css/style.css">
 </head>
 
 <body>
@@ -113,83 +54,9 @@
 
             <button type="submit">Login</button>
         </form>
-        <p>ยังไม่มีบัญชี? <a href="/register">สมัครสมาชิก</a></p>
+        <p>ต้องการส่งคำร้องเรียน? <a href="/">กดตรงนี้</a></p>
     </div>
-
-    <!-- The Modal -->
-    <div id="termsModal" class="modal">
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <h2>ข้อกำหนดและเงื่อนไข</h2>
-            <p>กรุณาอ่านข้อกำหนดและเงื่อนไขทั้งหมดก่อนดำเนินการต่อ</p>
-            <p>....</p>
-            <label id="termsCheckbox">
-                <input type="checkbox" id="termsAgree">
-                <span>ฉันได้อ่านและยอมรับข้อกำหนดและเงื่อนไขทั้งหมด</span>
-            </label>
-            <div>
-                <button id="agreeBtn" disabled>ตกลง</button>
-                <button id="cancelBtn">ยกเลิก</button>
-            </div>
-        </div>
-    </div>
-
     <script>
-        // Get the modal
-        var modal = document.getElementById("termsModal");
-
-        // Get the <span> element that closes the modal
-        var span = document.getElementsByClassName("close")[0];
-
-        // Get the checkbox, agree button, and cancel button
-        var termsCheckbox = document.getElementById("termsAgree");
-        var agreeBtn = document.getElementById("agreeBtn");
-        var cancelBtn = document.getElementById("cancelBtn");
-
-        // When the user clicks the button, open the modal
-        window.onload = function () {
-            modal.style.display = "block";
-        };
-
-        // When the user clicks on <span> (x), close the modal
-        span.onclick = function () {
-            modal.style.display = "none";
-            redirectToExternalSite();
-        }
-        // Function to handle redirection
-        function redirectToExternalSite() {
-            window.location.href = "https://www.google.com/"; // Replace with your desired URL
-        }
-
-        // If the user clicks cancel.
-        cancelBtn.onclick = function () {
-            modal.style.display = "none";
-            redirectToExternalSite()
-        }
-
-        // When the user clicks anywhere outside of the modal, close it
-        // window.onclick = function (event) {
-        //     if (event.target == modal) {
-        //         modal.style.display = "none";
-        //         redirectToExternalSite()
-        //     }
-        // }
-
-        // Checkbox event listener to enable/disable the agree button
-        termsCheckbox.addEventListener("change", function () {
-            if (this.checked) {
-                agreeBtn.classList.add("enabled");
-                agreeBtn.disabled = false;
-            } else {
-                agreeBtn.classList.remove("enabled");
-                agreeBtn.disabled = true;
-            }
-        });
-
-        agreeBtn.onclick = function () {
-            modal.style.display = "none";
-        }
-
         document.getElementById("login-form").addEventListener("submit", async (event) => {
             event.preventDefault();
 
