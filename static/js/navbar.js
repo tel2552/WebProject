@@ -92,7 +92,7 @@ document.querySelectorAll(".navbar a").forEach(link => {
 });
 
 // --- DOMContentLoaded Event Listener ---
-document.addEventListener("DOMContentLoaded", async () => { // ทำให้เป็น async function
+document.addEventListener("DOMContentLoaded", async () => {
     console.log("Navbar script loaded successfully!");
 
     // Add event listener for the toggle button
@@ -107,63 +107,48 @@ document.addEventListener("DOMContentLoaded", async () => { // ทำให้�
         try {
             console.log("Checking user role for Admin Control link...");
             const userData = await getUserData(); // เรียกใช้ getUserData() ที่ import มา
-
-            if (userData && userData.role === 'alladmin') {
+            if (userData && userData.role === 'admin' && 'superadmin') {
                 // ถ้ามีข้อมูล และ role เป็น 'alladmin' ให้แสดงลิงก์
-                adminControlLink.style.display = ''; // หรือ 'block', 'inline-block' ตาม default CSS
-                console.log("Admin control link shown for role:", userData.role);
+                adminControlLink.style.display = 'none'; // หรือ 'block', 'inline-block' ตาม default CSS
+                console.log("Admin control link hidden for role:", userData.role);
             } else {
-                // ถ้าไม่มีข้อมูล หรือ role ไม่ใช่ 'alladmin' ให้ซ่อนลิงก์
-                adminControlLink.style.display = 'none';
-                if (userData) {
-                    console.log("Admin control link hidden for role:", userData.role);
-                } else {
-                    console.log("Admin control link hidden (no user data or failed fetch).");
+                // ถ้าไม่มีข้อมูล หรือ role ไม่ใช่ 'alladmin'
+                    console.log("Your role is not in condition to Admin control link hidden.", userData.role);
                 }
-            }
         } catch (error) {
             // กรณีเกิด error ตอนเรียก getUserData (เช่น token หมดอายุ หรือ network error)
             console.error("Error checking user role for navbar:", error);
-            adminControlLink.style.display = 'none'; // ซ่อนลิงก์เมื่อเกิดข้อผิดพลาด
         }
     } else {
         console.warn("Element with ID 'admin-control-link' not found.");
     }
 
     // --- ตรวจสอบและซ่อนลิงก์ superadmin control link ---
-    const superadminControlLinks = document.querySelectorAll('.superadmin-control-link');
-    if (superadminControlLinks) { // ตรวจสอบก่อนว่า element มีอยู่จริง
-        try {
-            console.log("Checking user role for Admin Control link...");
-            const userData = await getUserData(); // เรียกใช้ getUserData() ที่ import มา
+    const superadminControlLinks = document.querySelectorAll('.superadmin-control-link'); // ใช้ querySelectorAll เพราะอาจมีหลายลิงก์
 
+    // ตรวจสอบว่ามี element ที่ต้องการควบคุมหรือไม่ ก่อนดำเนินการต่อ
+    if (superadminControlLinks.length > 0) { // ตรวจสอบว่าหา element เจออย่างน้อย 1 อัน
+        try {
+            console.log("Checking user role for Superadmin Control links..."); // เปลี่ยน log message ให้ชัดเจน
+            const userData = await getUserData(); // เรียกใช้ getUserData()
             if (userData && userData.role === 'superadmin') {
-                // ถ้ามีข้อมูล และ role เป็น 'alladmin' ให้แสดงลิงก์
+                // --- กรณีเป็น Superadmin: แสดงลิงก์ ---
                 superadminControlLinks.forEach(link => {
-                    link.style.display = 'none';
+                    link.style.display = 'none'; // ใช้ค่าว่างเพื่อให้แสดงผลตาม CSS เดิม (อาจจะเป็น block, inline-block, etc.)
+                    // หรือกำหนด display ที่ต้องการโดยตรง เช่น 'block' หรือ 'inline-block'
+                    // link.style.display = 'block';
                 });
-                // หรือ 'block', 'inline-block' ตาม default CSS
-                console.log("Admin control link shown for role:", userData.role);
+                console.log("Superadmin control links HIDDEN for role:", userData.role); // แก้ไข Log ให้ตรงกับการทำงาน
             } else {
-                // ถ้าไม่มีข้อมูล หรือ role ไม่ใช่ 'alladmin' ให้ซ่อนลิงก์
-                superadminControlLinks.forEach(link => {
-                    link.style.display = 'none';
-                });                
-                if (userData) {
-                    console.log("Admin control link hidden for role:", userData.role);
-                } else {
-                    console.log("Admin control link hidden (no user data or failed fetch).");
+                // กรณี fetch ข้อมูลไม่ได้ หรือไม่มี token
+                console.log("Your role is not in condition to Superadmin control links HIDDEN.", userData.role); // แก้ไข Log ให้ตรงกับการทำงาน
                 }
-            }
         } catch (error) {
-            // กรณีเกิด error ตอนเรียก getUserData (เช่น token หมดอายุ หรือ network error)
-            console.error("Error checking user role for navbar:", error);
-            superadminControlLinks.forEach(link => {
-                link.style.display = 'none';
-            });
-             // ซ่อนลิงก์เมื่อเกิดข้อผิดพลาด
-        }
+            // --- กรณีเกิด Error ตอน fetch ข้อมูล: ซ่อนลิงก์ (เป็น Fallback) ---
+            console.error("Error checking user role for navbar (superadmin links):", error); // Log error ให้ชัดเจน
+            }
     } else {
-        console.warn("Element with ID 'superadminControlLinks' not found.");
+        // --- กรณีไม่พบ Element ที่มี class นี้เลย ---
+        console.warn("No elements with class 'superadmin-control-link' found on this page."); // แจ้งเตือนหากไม่เจอ element
     }
 });

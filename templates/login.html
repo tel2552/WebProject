@@ -12,18 +12,19 @@
     }
 
     h1 {
-            color: #fff; /* White text for contrast */
-            text-align: center;
-            padding: 20px;
-            background: linear-gradient(45deg, #006400, #00b894); /* Gradient background */
-            border-radius: 10px;
-            margin-bottom: 30px;
-            max-width: 50%;
-            margin-left: 25%;
-            margin-right: 15%;
-            transform: translateX(-50%); /* /* Center the title */
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Subtle shadow */
-        }
+        color: #fff; /* White text for contrast */
+        text-align: center; /* จัดข้อความภายใน h1 ให้อยู่กลาง */
+        padding: 20px;
+        background: linear-gradient(45deg, #006400, #00b894); /* Gradient background */
+        border-radius: 10px;
+        margin-bottom: 30px;
+        max-width: 50%; /* กำหนดความกว้างสูงสุด */
+        margin-left: auto; /* ทำให้ Element อยู่กึ่งกลางแนวนอน */
+        margin-right: auto; /* ทำให้ Element อยู่กึ่งกลางแนวนอน */
+        /* transform: translateX(-50%); */ /* ไม่จำเป็นแล้วเมื่อใช้ margin: auto */
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Subtle shadow */
+        display: block; /* ทำให้ margin: auto ทำงานได้ */
+    }
 
     p {
         text-align: center;

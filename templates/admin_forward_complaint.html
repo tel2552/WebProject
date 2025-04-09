@@ -111,7 +111,16 @@
         .btn-delete:hover {
             background-color: #c82333; /* Darker red */
         }
-    
+        
+        .btn-secondary {
+            background-color: #6c757d; /* สีเทา */
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background-color: #5a6268; /* สีเทาเข้มขึ้น */
+        }
+
         table {
             width: 100%;
             border-collapse: collapse;
@@ -395,22 +404,22 @@
             <label class="severity-option low">
                 <input type="radio" name="severity" value="low">
                 <span>ต่ำ</span>
-                <span class="tooltiptext">ผลกระทบเล็กน้อย</span>
+                <span class="tooltiptext">ผลกระทบเล็กน้อย (ระยะเวลา - วันทำการ)</span>
             </label>
             <label class="severity-option medium">
                 <input type="radio" name="severity" value="medium">
                 <span>ปานกลาง</span>
-                <span class="tooltiptext">ผลกระทบปานกลาง</span>
+                <span class="tooltiptext">ผลกระทบปานกลาง (ระยะเวลา 15 วันทำการ)</span>
             </label>
             <label class="severity-option high">
                 <input type="radio" name="severity" value="high">
                 <span>สูง</span>
-                <span class="tooltiptext">ผลกระทบสูง</span>
+                <span class="tooltiptext">ผลกระทบสูง (ระยะเวลา 7 วันทำการ)</span>
             </label>
             <label class="severity-option critical">
                 <input type="radio" name="severity" value="critical">
                 <span>วิกฤต</span>
-                <span class="tooltiptext">ผลกระทบร้ายแรง</span>
+                <span class="tooltiptext">ผลกระทบร้ายแรง (ระยะเวลา 3 วันทำการ)</span>
             </label>
         </div>
         </fieldset>
@@ -495,6 +504,7 @@
             <div id="approver-recommendation-display"></div>
         </fieldset>
         <div style="display: flex; justify-content: center;">
+            <!-- <button type="submit3" class="btn-secondary">ย้อนกลับ</button> -->
             <button type="submit1" class="btn-save">บันทึกข้อมูล</button>
             <button type="submit">เสนออนุมัติ</button>
             <!-- <button type="submit2" class="btn-delete">ยกเลิกคำร้อง</button> -->
@@ -968,9 +978,6 @@
                 }
             });
         });
-
-        // โหลดข้อมูลคำร้องเมื่อเปิดหน้า
-        // window.onload = loadAdminName;
     </script>
 </body>
 </html>
