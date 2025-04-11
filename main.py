@@ -619,6 +619,12 @@ async def admit_complaint(id: str, payload: ForwardComplaintPayload = Body(...))
 @app.post("/admin/forward-complaint/{id}")
 async def forward_complaint(id: str, payload: ForwardComplaintPayload = Body(...)):
     try:
+        # Validate ObjectId format early
+        try:
+            complaint_obj_id = ObjectId(id)
+        except InvalidId:
+            raise HTTPException(status_code=400, detail=f"Invalid complaint ID format: {id}")
+
         # Access the payload data
         severity_level = payload.severity_level
         recipients_list = payload.recipients
@@ -637,13 +643,13 @@ async def forward_complaint(id: str, payload: ForwardComplaintPayload = Body(...
         correction5 = payload.correction5
         inspector_name5 = payload.inspector_name5
         inspection_date5 = payload.inspection_date5
-        # recommendation = payload.approver_recommendation
+        # recommendation = payload.approver_recommendation # This was commented out, keep as is
 
         update_data = OrderedDict([
             ("severity_level", severity_level),
             ("recipients", recipients_list),
             ("status", "Forwarded"),
-            ("admit_date", datetime.utcnow()),
+            ("admit_date", datetime.utcnow()), # Consider renaming this field if status is 'Forwarded' e.g., 'forwarded_date'
             ("correction1", correction1),
             ("inspector_name1", inspector_name1),
             ("inspection_date1", inspection_date1),
@@ -661,24 +667,124 @@ async def forward_complaint(id: str, payload: ForwardComplaintPayload = Body(...
             ("inspection_date5", inspection_date5),
         ])
 
-
-
         # อัปเดตข้อมูลคำร้องใน MongoDB
         result = complaints_collection.update_one(
-            {"_id": ObjectId(id)},
-            {
-                "$set": update_data
-            }
+            {"_id": complaint_obj_id}, # Use the validated ObjectId
+            {"$set": update_data}
         )
 
         # ตรวจสอบว่าอัปเดตสำเร็จหรือไม่
         if result.modified_count == 1:
-            return {"message": "Complaint Forwarded successfully"}
-        else:
-            raise HTTPException(status_code=404, detail="Complaint not found or no changes made")
+            # --- Start: Added Email Sending Logic ---
+            try:
+                # Fetch the complaint again to get the title (or use data already available if possible)
+                # It's slightly inefficient but ensures we have the correct title
+                complaint_data = complaints_collection.find_one({"_id": complaint_obj_id})
+                if complaint_data:
+                    complaint_title = complaint_data.get("title", "Complaint Forwarded") # Default title if missing
+                    recipient_email = "janramsae@pim.ac.th" # The target email address
+                    
+                    # Call the send_email function
+                    # Modify the subject or body in email_service.py if needed for "Forwarded" status
+                    send_email(
+                        title=f"Forwarded: {complaint_title}", # Modify title slightly for clarity
+                        complaint_id=id,
+                        recipient_email=recipient_email
+                    )
+                    print(f"Forwarded email sent successfully to {recipient_email} for complaint {id}") # Optional logging
+                else:
+                     # This case should ideally not happen if modified_count was 1
+                     print(f"Warning: Complaint {id} updated but could not be found for email notification.")
 
+            except Exception as email_error:
+                # Log the email sending error but don't fail the main API response
+                print(f"Error sending forwarded email notification for complaint {id}: {email_error}")
+            # --- End: Added Email Sending Logic ---
+
+            return {"message": "Complaint Forwarded successfully"}
+        elif result.matched_count == 1 and result.modified_count == 0:
+             # Handle the case where the document was found but not modified (e.g., data was the same)
+             # You might still want to send an email here depending on requirements
+             # For now, treat as "no changes made"
+             raise HTTPException(status_code=304, detail="Complaint found but no changes were made.")
+        else:
+            # Document with the given ID was not found
+            raise HTTPException(status_code=404, detail="Complaint not found.")
+
+    # Keep the specific InvalidId handler if you didn't add it earlier
+    except InvalidId:
+         raise HTTPException(status_code=400, detail=f"Invalid complaint ID format: {id}")
+    except HTTPException as http_exc:
+        # Re-raise HTTPException to ensure FastAPI handles it correctly
+        raise http_exc
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        # Catch any other unexpected errors
+        print(f"An unexpected error occurred in forward_complaint: {e}") # Log the error
+        raise HTTPException(status_code=500, detail=f"An internal server error occurred: {str(e)}")
+
+# @app.post("/admin/forward-complaint/{id}")
+# async def forward_complaint(id: str, payload: ForwardComplaintPayload = Body(...)):
+#     try:
+#         # Access the payload data
+#         severity_level = payload.severity_level
+#         recipients_list = payload.recipients
+#         correction1 = payload.correction1
+#         inspector_name1 = payload.inspector_name1
+#         inspection_date1 = payload.inspection_date1
+#         correction2 = payload.correction2
+#         inspector_name2 = payload.inspector_name2
+#         inspection_date2 = payload.inspection_date2
+#         correction3 = payload.correction3
+#         inspector_name3 = payload.inspector_name3
+#         inspection_date3 = payload.inspection_date3
+#         correction4 = payload.correction4
+#         inspector_name4 = payload.inspector_name4
+#         inspection_date4 = payload.inspection_date4
+#         correction5 = payload.correction5
+#         inspector_name5 = payload.inspector_name5
+#         inspection_date5 = payload.inspection_date5
+#         # recommendation = payload.approver_recommendation
+
+#         update_data = OrderedDict([
+#             ("severity_level", severity_level),
+#             ("recipients", recipients_list),
+#             ("status", "Forwarded"),
+#             ("admit_date", datetime.utcnow()),
+#             ("correction1", correction1),
+#             ("inspector_name1", inspector_name1),
+#             ("inspection_date1", inspection_date1),
+#             ("correction2", correction2),
+#             ("inspector_name2", inspector_name2),
+#             ("inspection_date2", inspection_date2),
+#             ("correction3", correction3),
+#             ("inspector_name3", inspector_name3),
+#             ("inspection_date3", inspection_date3),
+#             ("correction4", correction4),
+#             ("inspector_name4", inspector_name4),
+#             ("inspection_date4", inspection_date4),
+#             ("correction5", correction5),
+#             ("inspector_name5", inspector_name5),
+#             ("inspection_date5", inspection_date5),
+#         ])
+
+
+
+#         # อัปเดตข้อมูลคำร้องใน MongoDB
+#         result = complaints_collection.update_one(
+#             {"_id": ObjectId(id)},
+#             {
+#                 "$set": update_data
+#             }
+#         )
+
+#         # ตรวจสอบว่าอัปเดตสำเร็จหรือไม่
+#         if result.modified_count == 1:
+#             return {"message": "Complaint Forwarded successfully"}
+#         else:
+#             raise HTTPException(status_code=404, detail="Complaint not found or no changes made")
+
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=str(e))
     
 @app.post("/admin/complete-complaint/{id}")
 def complete_complaint(id: str, approver_recommendation: str = Form(...)):
