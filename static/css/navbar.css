@@ -1,0 +1,71 @@
+/* สไตล์พื้นฐานของ Navbar */
+    .navbar {
+        width: 250px;
+        background-color: #333;
+        color: white;
+        height: 100vh;
+        padding: 20px;
+        padding-top: 60px; /* เลื่อนลงมา 60px */
+        box-sizing: border-box;
+        position: fixed;
+        left: -250px; /* ซ่อนเมนูเริ่มต้น */
+        top: 0;
+        transition: left 0.3s;
+    }
+
+    /* ถ้าเมนูเปิดอยู่ */
+    .navbar.show {
+        left: 0;
+    }
+
+    /* เมื่อ Navbar เปิด */
+    .navbar.show ~ .content {
+        margin-left: 250px; /* ขยับเมื่อเปิดเมนู */
+    }
+
+    .navbar a {
+        color: white;
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        padding: 10px;
+        margin: 5px 0;
+        border-radius: 4px;
+        transition: background-color 0.3s;
+    }
+
+    .navbar a:hover {
+        background-color: #575757;
+    }
+
+    .navbar a i {
+        margin-right: 10px;
+    }
+
+    /* ปุ่ม Hamburger */
+    .menu-toggle {
+        position: fixed;
+        top: 15px;
+        left: 15px;
+        background: #333;
+        color: white;
+        border: none;
+        padding: 10px;
+        cursor: pointer;
+        font-size: 18px;
+        z-index: 1000;
+    }
+
+    /* ซ่อน Navbar ในมือถือ */
+    @media (max-width: 768px) {
+        .navbar {
+            width: 200px;
+        }
+
+        .content {
+            margin-left: 0; /* ให้เนื้อหากลางจอเมื่อ Navbar ซ่อน */
+        }
+    }
+    .hidden {
+        display: none;
+    }

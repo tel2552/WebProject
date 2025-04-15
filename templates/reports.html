@@ -96,6 +96,9 @@
             background-color: #0056b3;
         }
     </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600&display=swap" rel="stylesheet">
 </head>
 <body>
     <!-- Navbar -->
@@ -115,7 +118,7 @@
             <thead>
                 <tr>
                     <th>หัวข้อเรื่อง</th>
-                    <th>รายละเอียด</th>
+                    <!-- <th>รายละเอียด</th> -->
                     <th>ชื่อผู้ร้องเรียน</th>
                     <th>วันที่</th>
                     <th>ช่องทางติดต่อ</th>
@@ -126,135 +129,10 @@
             </thead>
             <tbody id="complaints-table">
                 <!-- Data from MongoDB will be populated here -->
+                <tr><td colspan="8" style="text-align: center;">กำลังโหลดข้อมูล...</td></tr>
             </tbody>
         </table>
     </div>
-
-    <script>
-        async function fetchAdmitComplaints() {
-            try {
-                const response = await fetch("/admin/get-complaints");
-                const complaints = await response.json();
-
-                const tableBody = document.getElementById("complaints-table");
-                tableBody.innerHTML = ""; // Clear existing rows
-
-                // Fetch user role and team
-                const userRole = await getUserRole();
-                const userTeam = await getUserTeam();
-
-                complaints.forEach(complaint => {
-                    // แสดงเฉพาะคำร้องที่มีสถานะเป็น "Admit"
-                    if (complaint.status === "Admit") {
-                        // Filter by team if user is "admin"
-                        if (userRole === "admin" && complaint.team !== userTeam) {
-                            return;
-                        }
-
-                        const row = document.createElement("tr");
-
-                        row.innerHTML = `
-                            <td>${complaint.title}</td>
-                            <td>${complaint.details}</td>
-                            <td>${complaint.name}</td>
-                            <td>${complaint.date}</td>
-                            <td>${complaint.contact}</td>
-                            <td>${complaint.team}</td>
-                            <td class="status status-admit">
-                                ${complaint.status}
-                            </td>
-                            <td>
-                                <form action="/admin/forward-complaint/${complaint._id}" method="get">
-                                    <button type="submit" class="btn-update">Update</button>
-                                </form>
-                            </td>
-                        `;
-
-                        tableBody.appendChild(row);
-                    }
-                });
-                // เรียงตารางตามค่าที่เลือกไว้เมื่อโหลดข้อมูลเสร็จ
-                sortTable();
-            } catch (error) {
-                console.error("Failed to fetch complaints:", error);
-            }
-        }
-
-        
-        async function getUserRole() {
-            try {
-                const token = localStorage.getItem('access_token');
-                if (!token) {
-                    console.error('No access token found.');
-                    return null;
-                }
-
-                const response = await fetch('/admin/get-userrole', {  // Make sure this endpoint exists and returns the user's role
-                    method: 'GET',
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
-
-                if (response.ok) {
-                    const data = await response.json();
-                    return data.role; // Assuming the server returns { "role": "superadmin" }
-                } else {
-                    console.error('Failed to fetch user role:', response.statusText);
-                    return null;
-                }
-            } catch (error) {
-                console.error('Error fetching user role:', error);
-                return null;
-            }
-        }
-
-        async function getUserTeam() {
-            try {
-                const token = localStorage.getItem('access_token');
-                if (!token) {
-                    console.error('No access token found.');
-                    return null;
-                }
-
-                const response = await fetch('/admin/get-userteam', {
-                    method: 'GET',
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
-
-                if (response.ok) {
-                    const data = await response.json();
-                    return data.team;
-                } else {
-                    console.error('Failed to fetch user team:', response.statusText);
-                    return null;
-                }
-            } catch (error) {
-                console.error('Error fetching user team:', error);
-                return null;
-            }
-        }
-
-        async function sortTable() {
-            const table = document.getElementById("complaints-table");
-            const rows = Array.from(table.rows);
-            const sortOrder = document.getElementById("sort-options").value;
-
-            rows.sort((a, b) => {
-                const dateA = new Date(a.cells[3].textContent); // คอลัมน์วันที่
-                const dateB = new Date(b.cells[3].textContent);
-
-                return sortOrder === "newest" ? dateB - dateA : dateA - dateB;
-            });
-
-            table.innerHTML = ""; // ล้างตารางก่อนแสดงผลใหม่
-            rows.forEach(row => table.appendChild(row));
-        }
-
-        fetchAdmitComplaints();
-    </script>
-    <!-- <script src="/static/js/navbar.js"></script> -->
+    <script type="module" src="/static/js/reports.js" defer></script>
 </body>
 </html>

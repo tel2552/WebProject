@@ -95,6 +95,12 @@ document.querySelectorAll(".navbar a").forEach(link => {
 document.addEventListener("DOMContentLoaded", async () => {
     console.log("Navbar script loaded successfully!");
 
+    //แสดง Navbar ตอนโหลดหน้าเว็บ
+    const navbar = document.getElementById("navbar-container");
+    if (navbar) {
+        navbar.classList.add("show");
+    }
+
     // Add event listener for the toggle button
     const toggleButton = document.querySelector(".menu-toggle");
     if (toggleButton) {
