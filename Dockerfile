@@ -34,6 +34,14 @@ RUN { \
     fonts-noto-cjk \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
+
+# สร้างไดเรกทอรีสำหรับ custom fonts และคัดลอกฟอนต์เข้าไป
+RUN mkdir -p /usr/local/share/fonts/custom
+COPY static/fonts/ /usr/local/share/fonts/custom/
+
+# อัปเดต font cache เพื่อให้ระบบรู้จักฟอนต์ใหม่ทั้งหมด (ทั้ง system และ custom)
+RUN fc-cache -fv
+
 # ตั้ง working directory ภายใน container
 WORKDIR /app
 
