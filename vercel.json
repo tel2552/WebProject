@@ -18,10 +18,7 @@
   ],
   "functions": {
     "main.py": {
-      "includeFiles": [
-        "templates/**",
-        "static/**"
-      ]
+      "includeFiles": "{templates/**,static/**}"
     }
   },
   "build": {
