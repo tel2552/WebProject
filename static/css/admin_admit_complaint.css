@@ -9,6 +9,7 @@ body {
     background-repeat: no-repeat;
     background-size: cover;
     min-height: 100vh;
+    padding-bottom: 150px;
 }
 
 h1 {

@@ -1,4 +1,3 @@
-// static/js/admin_complaints.js
 import { fetchDataWithToken, getUserRole, getUserTeam } from './token-manager.js';
 
 /**

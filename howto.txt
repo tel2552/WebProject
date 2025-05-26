@@ -1,3 +1,0 @@
-เปิด Terminal หรือ Command Prompt
-cd ไปยังโฟลเดอร์ที่มีไฟล์ main.py
-รันคำสั่ง: uvicorn main:app --reload(for clouding: gunicorn main:app -k uvicorn.workers.UvicornWorker)

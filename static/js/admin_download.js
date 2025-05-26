@@ -1,4 +1,3 @@
-// static/js/admin_download.js
 import { getUserRole, getUserTeam, fetchDataWithToken } from './token-manager.js'; // Import เพิ่ม fetchDataWithToken
 
 // --- DOM Element References ---
@@ -33,21 +32,22 @@ const OVERDUE_ELIGIBLE_STATUSES = ["pending", "admit", "resolved"]; // Statuses 
 /**
  * Calculates if a complaint is overdue and returns its display status.
  * @param {object} complaint - The complaint object.
- * @returns {string} - The status to display ('Overdue' or original status).
+ * @returns {object} - An object with 'status' and 'daysOverdue' (if applicable).
  */
 function getDisplayStatus(complaint) {
     const originalStatus = complaint.status ? complaint.status.toLowerCase() : 'unknown';
     const severity = complaint.severity_level ? complaint.severity_level.toLowerCase() : 'unknown';
     const complaintDateStr = complaint.date; // Assuming 'date' is the creation/problem date field
+    let daysOverdue = 0;
 
     // Only calculate overdue for eligible statuses and known severities with limits
     if (!OVERDUE_ELIGIBLE_STATUSES.includes(originalStatus) || severity === 'low' || !SEVERITY_LIMITS[severity]) {
-        return complaint.status || 'Unknown'; // Return original status
+        return { status: complaint.status || 'Unknown', daysOverdue: 0 };
     }
 
     if (!complaintDateStr) {
         // console.warn(`Complaint ${complaint._id || complaint.title} missing date for overdue calculation.`);
-        return complaint.status || 'Unknown'; // Cannot calculate without date
+        return { status: complaint.status || 'Unknown', daysOverdue: 0 };
     }
 
     try {
@@ -60,7 +60,7 @@ function getDisplayStatus(complaint) {
 
         if (isNaN(complaintDate)) {
             // console.warn(`Complaint ${complaint._id || complaint.title} has invalid date: ${complaintDateStr}`);
-            return complaint.status || 'Unknown'; // Invalid date
+            return { status: complaint.status || 'Unknown', daysOverdue: 0 };
         }
 
         const timeDifference = currentDate.getTime() - complaintDate.getTime();
@@ -68,13 +68,14 @@ function getDisplayStatus(complaint) {
         const limitDays = SEVERITY_LIMITS[severity];
 
         if (daysDifference > limitDays) {
-            return "Overdue";
+            daysOverdue = daysDifference - limitDays;
+            return { status: "Overdue", daysOverdue: daysOverdue };
         } else {
-            return complaint.status || 'Unknown'; // Not overdue, return original
+            return { status: complaint.status || 'Unknown', daysOverdue: 0 };
         }
     } catch (error) {
         console.error(`Error calculating overdue status for complaint ${complaint._id || complaint.title}:`, error);
-        return complaint.status || 'Unknown'; // Return original on error
+        return { status: complaint.status || 'Unknown', daysOverdue: 0 };
     }
 }
 
@@ -101,11 +102,11 @@ async function fetchAllComplaints() {
         const complaints = await fetchDataWithToken("/admin/get-completed-complaints"); // ใช้ fetchDataWithToken
 
         if (complaints === null) {
-             // fetchDataWithToken คืนค่า null ถ้าไม่มี token (ควรจะ log error ไปแล้ว)
-             tableBody.innerHTML = '<tr><td colspan="10" style="color: red; text-align: center;">ไม่พบ Token กรุณาเข้าสู่ระบบใหม่</td></tr>';
-             // อาจจะ redirect ไปหน้า login
-             // window.location.href = '/login';
-             return;
+                // fetchDataWithToken คืนค่า null ถ้าไม่มี token (ควรจะ log error ไปแล้ว)
+                tableBody.innerHTML = '<tr><td colspan="10" style="color: red; text-align: center;">ไม่พบ Token กรุณาเข้าสู่ระบบใหม่</td></tr>';
+                // อาจจะ redirect ไปหน้า login
+                // window.location.href = '/login';
+                return;
         }
 
         allComplaints = complaints;
@@ -151,7 +152,8 @@ function displayComplaints(complaints) {
         row.dataset.isoDate = complaint.date;
 
         // --- Calculate Display Status (Handles Overdue) ---
-        const displayStatus = getDisplayStatus(complaint);
+        const statusInfo = getDisplayStatus(complaint);
+        const displayStatus = statusInfo.status;
         const displayStatusLower = displayStatus.toLowerCase();
 
         // --- Format Dates (Thai Format) ---
@@ -199,7 +201,12 @@ function displayComplaints(complaints) {
         row.insertCell().textContent = escapeHTML(complaint.correction2 || '-');
         const statusCell = row.insertCell();
         statusCell.textContent = escapeHTML(displayStatus); // Use calculated display status
-        statusCell.className = statusClass; // Apply the determined class
+        statusCell.className = statusClass; // Apply the determined class for styling
+
+        if (displayStatusLower === "overdue" && statusInfo.daysOverdue > 0) {
+            statusCell.style.position = 'relative'; // Needed for tooltip positioning
+            statusCell.innerHTML += ` <span class="tooltip-overdue">ล้าช้า ${statusInfo.daysOverdue} วัน</span>`;
+        }
     });
 
     // เรียงลำดับตารางหลังจากแสดงข้อมูล (ถ้ามี dropdown)
@@ -407,6 +414,33 @@ if (sortOptions) {
 // Optional: Add change listeners for other filters if desired
 // severityFilter.addEventListener('change', filterComplaints);
 // teamFilter.addEventListener('change', filterComplaints);
+
+// --- Add CSS for Tooltip (can be moved to a .css file) ---
+const styleSheet = document.createElement("style");
+styleSheet.type = "text/css";
+styleSheet.innerText = `
+.status-overdue .tooltip-overdue {
+    visibility: hidden;
+    width: 120px;
+    background-color: black;
+    color: #fff;
+    text-align: center;
+    border-radius: 6px;
+    padding: 5px 0;
+    position: absolute;
+    z-index: 1;
+    bottom: 125%; /* Position above the cell */
+    left: 50%;
+    margin-left: -60px; /* Use half of the width to center */
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.status-overdue:hover .tooltip-overdue {
+    visibility: visible;
+    opacity: 1;
+}`;
+document.head.appendChild(styleSheet);
 
 
 // --- Initialization ---

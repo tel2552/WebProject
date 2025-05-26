@@ -1,4 +1,3 @@
-// navbar.js
 import { getAccessToken, removeAccessToken, getUserData } from './token-manager.js'; // Import getUserData เพิ่ม
 
 // --- Logout Function ---

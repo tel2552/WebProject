@@ -1,25 +1,22 @@
 import io
 from weasyprint import HTML, CSS
 from jinja2 import Environment, FileSystemLoader, select_autoescape
+import os
 
 # Setup Jinja2 environment
 # Make sure the path to the 'templates' directory is correct relative to where this script runs
 # or provide an absolute path.
 try:
-    template_loader = FileSystemLoader(searchpath="./templates") # Adjust if your structure is different
+    # Assuming this script is in WebProject/services, templates is in WebProject/templates
+    current_script_dir = os.path.dirname(os.path.abspath(__file__))
+    project_root_dir = os.path.dirname(current_script_dir) # Goes up to WebProject
+    templates_path = os.path.join(project_root_dir, "templates")
+    template_loader = FileSystemLoader(searchpath=templates_path)
 except Exception as e:
     print(f"Error setting up template loader: {e}")
-    # Fallback or more robust path detection might be needed if running from different contexts
-    # For example, if main.py is in WebProject and templates is WebProject/templates
-    import os
     current_dir = os.path.dirname(os.path.abspath(__file__))
-    project_root = os.path.dirname(current_dir) # Assuming pdf_service.py is in WebProject directory
-    templates_dir = os.path.join(project_root, "templates")
-    if not os.path.exists(templates_dir): # If pdf_service.py is one level deeper
-        project_root = os.path.dirname(project_root)
-        templates_dir = os.path.join(project_root, "templates")
-
-    template_loader = FileSystemLoader(searchpath=templates_dir)
+    # Fallback if the above fails, though it should be more robust now
+    template_loader = FileSystemLoader(searchpath=os.path.join(os.path.dirname(current_dir), "templates"))
 
 
 jinja_env = Environment(
@@ -66,4 +63,3 @@ def generate_complaint_pdf_from_data(complaint_data: dict) -> bytes:
     # html = HTML(string=html_string, base_url=".") # Example if you have relative paths in HTML
     pdf_bytes = HTML(string=html_string).write_pdf()
     return pdf_bytes
-

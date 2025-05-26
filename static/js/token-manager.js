@@ -1,4 +1,3 @@
-// token-manager.js
 /**
  * Retrieves the access token from local storage.
  * @returns {string|null} The access token or null if not found.

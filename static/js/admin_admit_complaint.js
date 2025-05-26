@@ -1,4 +1,3 @@
-// admin_admit_complaint.js
 // ดึงข้อมูลคำร้องจาก URL (เช่น /forward-complaint/{id})
 const complaintId = window.location.pathname.split("/").pop();
 

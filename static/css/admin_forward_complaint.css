@@ -10,6 +10,7 @@ body {
     background-size: cover;
     background-attachment: fixed;
     min-height: 100vh;
+    padding-bottom: 150px;
 }
 
 h1 {
@@ -80,6 +81,7 @@ button {
     transition: background-color 0.3s ease; /* Smooth transition */
     font-size: 16px;
     margin: 5px;
+    margin-top: 20px;
 }
 
 button:hover {
@@ -283,6 +285,7 @@ th {
     max-width: 700px; /* ให้กรอบของ fieldset มีขนาดเท่ากับฟอร์ม */
     margin-left: auto;
     margin-right: auto;
+    margin-bottom: 50px; /* เพิ่มระยะห่างด้านล่างเพื่อไม่ให้ติดกับ footer */
 }
 
 .correction-section legend {
@@ -325,4 +328,39 @@ th {
     border: none;
     border-top: 1px solid #000000;
     margin: 20px 0;
+}
+
+/* Base style for the tooltip - hidden by default */
+.tooltiptext-disabled {
+    visibility: hidden;
+    opacity: 0;
+    display: none; /* Hide completely from layout when not active */
+    width: 160px;
+    background-color: #555;
+    color: #fff;
+    text-align: center;
+    border-radius: 6px;
+    padding: 5px 0;
+    position: absolute;
+    z-index: 1;
+    bottom: 125%; /* Position the tooltip above the button */
+    left: 50%;
+    margin-left: -80px; /* Use half of the width (160/2 = 80) to center the tooltip */
+    transition: opacity 0.3s; /* Smooth fade transition */
+}
+
+.btn-disabled {
+    background-color: #ccc !important; /* สีเทา */
+    color: #666 !important;           /* สีตัวอักษรเทา */
+    cursor: not-allowed !important;   /* เปลี่ยน cursor */
+    position: relative; /* สำหรับ tooltip */
+}
+/* Show tooltip ONLY when the disabled button is hovered */
+.btn-disabled .tooltiptext-disabled {
+     visibility: visible; /* Make it visible */
+     display: block; /* Make it appear in layout */
+}
+/* The opacity transition is handled by the base style and the :hover rule */
+.btn-disabled:hover .tooltiptext-disabled {
+     opacity: 1; /* Fade in on hover */
 }

@@ -1,4 +1,3 @@
-// static/js/forwardeds.js
 import { getUserRole, getUserTeam, fetchDataWithToken } from './token-manager.js'; // Import ฟังก์ชันที่จำเป็น
 
 /**

@@ -1,4 +1,3 @@
-// static/js/complaint.js
 'use strict';
 
 // --- DOM Element References ---
