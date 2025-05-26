@@ -6,8 +6,7 @@
       "use": "@vercel/python",
       "config": {
         "maxLambdaSize": "50mb",
-        "runtime": "python3.9",
-        "buildCommand": "bash build.sh && pip install -r requirements.txt"
+        "runtime": "python3.9"
       }
     }
   ],
@@ -19,7 +18,24 @@
   ],
   "functions": {
     "main.py": {
-      "includeFiles": "templates/**,static/**"
+      "includeFiles": [
+        "templates/**",
+        "static/**"
+      ]
     }
-  }
+  },
+  "build": {
+    "env": {
+      "PIP_EXTRA_INDEX_URL": "https://www.piwheels.org/simple",
+      "PLAYWRIGHT_BROWSERS_PATH": "0"
+    }
+  },
+  "systemDependencies": [
+    "libpango-1.0-0",
+    "libpangoft2-1.0-0",
+    "libgdk-pixbuf-2.0-0",
+    "libcairo2",
+    "libharfbuzz0b",
+    "libfontconfig1"
+  ]
 }
