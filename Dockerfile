@@ -8,26 +8,26 @@ ENV PYTHONUNBUFFERED=1
 ENV PIP_EXTRA_INDEX_URL=https://www.piwheels.org/simple
 
 # ติดตั้ง system dependencies ที่จำเป็นสำหรับ WeasyPrint และอื่นๆ
-# การรวมคำสั่ง apt-get ทั้งหมดใน RUN เดียวช่วยลดจำนวน layer ของ image
-# เพิ่มการยอมรับ EULA สำหรับ Microsoft fonts ก่อน
-RUN echo "ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true" | debconf-set-selections \
-    && apt-get update && apt-get install -y \
+# - แก้ไข sources.list ให้มี 'contrib' repository สำหรับ ttf-mscorefonts-installer
+# - ย้ายตำแหน่ง option '--no-install-recommends' ให้ถูกต้อง
+# - ยอมรับ EULA ของ Microsoft fonts ล่วงหน้า
+RUN sed -i 's/main$/main contrib/' /etc/apt/sources.list \
+    && apt-get update \
+    && echo "ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true" | debconf-set-selections \
+    && apt-get install -y --no-install-recommends \
     libpango-1.0-0 \
     libpangoft2-1.0-0 \
     libgdk-pixbuf2.0-0 \
     libcairo2 \
     libharfbuzz0b \
     libfontconfig1 \
-    # เพิ่ม ttf-mscorefonts-installer สำหรับ Tahoma และฟอนต์ Microsoft อื่นๆ
     ttf-mscorefonts-installer \
     build-essential \
-    --no-install-recommends \
     fonts-thai-tlwg \
     fonts-noto \
     fonts-noto-cjk \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
-
 # ตั้ง working directory ภายใน container
 WORKDIR /app
 
