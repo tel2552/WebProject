@@ -9,13 +9,17 @@ ENV PIP_EXTRA_INDEX_URL=https://www.piwheels.org/simple
 
 # ติดตั้ง system dependencies ที่จำเป็นสำหรับ WeasyPrint และอื่นๆ
 # การรวมคำสั่ง apt-get ทั้งหมดใน RUN เดียวช่วยลดจำนวน layer ของ image
-RUN apt-get update && apt-get install -y \
+# เพิ่มการยอมรับ EULA สำหรับ Microsoft fonts ก่อน
+RUN echo "ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true" | debconf-set-selections \
+    && apt-get update && apt-get install -y \
     libpango-1.0-0 \
     libpangoft2-1.0-0 \
     libgdk-pixbuf2.0-0 \
     libcairo2 \
     libharfbuzz0b \
     libfontconfig1 \
+    # เพิ่ม ttf-mscorefonts-installer สำหรับ Tahoma และฟอนต์ Microsoft อื่นๆ
+    ttf-mscorefonts-installer \
     build-essential \
     --no-install-recommends \
     fonts-thai-tlwg \
