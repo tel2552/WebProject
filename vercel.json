@@ -24,12 +24,5 @@
         "static/**"
       ]
     }
-  },
-  "build": {
-    "command": "bash build.sh",
-    "env": {
-      "PIP_EXTRA_INDEX_URL": "https://www.piwheels.org/simple",
-      "PLAYWRIGHT_BROWSERS_PATH": "0"
-    }
   }
 }
