@@ -18,6 +18,9 @@ RUN apt-get update && apt-get install -y \
     libfontconfig1 \
     build-essential \
     --no-install-recommends \
+    fonts-thai-tlwg \
+    fonts-noto \
+    fonts-noto-cjk \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
