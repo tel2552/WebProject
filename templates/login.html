@@ -1,23 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
-<style>
-    body  {
-        background-image: url("/static/bg_pim.jpg");
-        background-color: #cccccc;
-        background-position: center; /* Center the image */
-        background-repeat: no-repeat; /* Do not repeat the image */
-        -moz-background-size: 100% 100%;
-        -webkit-background-size: 100% 100%;
-        background-size: 100% 100%;
-    }
-    </style>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>เข้าสู่ระบบ</title>
+    <link rel="icon" href="/static/favicon.ico" type="image/x-icon">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="/static/css/login.css">
 </head>
+
 <body>
     <div class="container">
         <h1>Login</h1>
@@ -30,39 +22,9 @@
 
             <button type="submit">Login</button>
         </form>
-        <p>ยังไม่มีบัญชี? <a href="/register">สมัครสมาชิก</a></p>
+        <p>ต้องการส่งคำร้องเรียน? <a href="/">กดตรงนี้</a></p>
     </div>
-    <script>
-        document.getElementById("login-form").addEventListener("submit", async (event) => {
-            event.preventDefault();
-
-            const username = document.getElementById("username").value;
-            const password = document.getElementById("password").value;
-
-            const formData = new URLSearchParams();
-            formData.append("username", username);
-            formData.append("password", password);
-
-            const response = await fetch("/login", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/x-www-form-urlencoded"
-                },
-                body: formData.toString()
-            });
-            const result = await response.json();
-            if (response.ok) {
-                    localStorage.setItem("access_token", result.token);
-                    window.location.href = result.redirect_url; // Redirect to the new URL
-            } else {
-                Swal.fire({
-                        icon: 'error',
-                        title: 'เกิดข้อผิดพลาด!',
-                        text: "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง",
-                        confirmButtonText: 'ตกลง',
-                    });
-                }
-        });
-    </script>
+    <script type="module" src="/static/js/login.js"></script>
 </body>
+
 </html>

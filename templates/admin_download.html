@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>รายงานสรุป</title>
+    <link rel="icon" href="/static/favicon.ico" type="image/x-icon">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="stylesheet" href="/static/css/admin_download.css">
+</head>
+<body>
+    <!-- Navbar -->
+    {% include 'navbar.html' %}
+
+    <!-- Content -->
+    <div class="content">
+        <div style="text-align: center;">
+            <h1>รายงานสรุป</h1>
+        </div>
+
+        <!-- Search Filters -->
+        <div class="search-container">
+            <label for="searchInput">คำค้นหา:</label>
+            <input type="text" id="searchInput" placeholder="ค้นหา...">
+
+            <label for="severityFilter">ระดับความรุนแรง:</label>
+            <select id="severityFilter">
+                <option value="">ทั้งหมด</option>
+                <option value="Low">Low</option>
+                <option value="Medium">Medium</option>
+                <option value="High">High</option>
+                <option value="Critical">Critical</option>
+            </select>
+
+            <label for="teamFilter" id="teamFilterLabel">หน่วยงาน:</label>
+            <select id="teamFilter" style="display: none;">
+                <option value="">ทั้งหมด</option>
+                <option value="ด้านบุคลากร">ด้านบุคลากร</option>
+                <option value="การบริการงานวิจัย">การบริการงานวิจัย</option>
+                <option value="การบริการวิชาการ">การบริการวิชาการ</option>
+                <option value="การบริหารจัดการของ PIM">การบริหารจัดการของ PIM</option>
+                <option value="การบริการแก่นักศึกษา">การบริการแก่นักศึกษา</option>
+                <option value="อื่นๆ">อื่นๆ</option>
+            </select>
+
+            
+            <label for="dateFilter">วันที่พบปัญหา:</label>
+            <input type="date" id="dateFilter">
+
+            <label for="statusFilter">สถานะ:</label>
+            <select id="statusFilter">
+                <option value="">ทั้งหมด</option>
+                <option value="Pending">Pending</option>
+                <option value="Admit">Admit</option>
+                <option value="Forwarded">Forwarded</option>
+                <option value="Complete">Complete</option>
+                <option value="Resolved">Resolved</option>
+                <option value="Overdue">Overdue</option> <!-- New: Overdue option -->
+            </select>
+
+            <button type="button" id="searchButton" class="btn-search">ค้นหา</button>
+        </div>
+
+        <button type="button" id="exportButton" class="btn-export">Export to Excel</button>
+        <table>
+            <thead>
+                <tr>
+                    <th>เลขที่</th>
+                    <th>หัวข้อเรื่อง</th>
+                    <th>ชื่อลูกค้า</th>
+                    <th>วันที่พบปัญหา</th> <!-- Assuming this is complaint.date -->
+                    <th>ผู้ดำเนินการข้อร้องเรียน</th>
+                    <th>หน่วยงาน</th>
+                    <th>ระดับความรุนแรง</th>
+                    <th>วันที่แก้ไขปัญหา</th> <!-- Assuming this is complaint.complete_date -->
+                    <th>การแก้ไขปัญหา</th>
+                    <th>สถานะ</th>
+                </tr>
+            </thead>
+            <tbody id="complaints-table">
+                <!-- Data will be populated here by JavaScript -->
+                 <tr><td colspan="10" style="text-align: center;">Loading complaints...</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- โหลด JS Modules -->
+    <script type="module" src="/static/js/admin_download.js"></script>
+</body>
+</html>

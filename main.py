@@ -1,17 +1,25 @@
-from fastapi import FastAPI, HTTPException, Depends, Request, Form, Body , Response
-from fastapi.responses import HTMLResponse, RedirectResponse , JSONResponse
+import os
+import uvicorn
+from fastapi import FastAPI, HTTPException, Depends, Request, Form, Body, Response, status , Query, Cookie
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
-from typing import List
-from datetime import timedelta
-from database import users_collection, complaints_collection
-from auth import get_password_hash, verify_password, create_access_token
+from pydantic import BaseModel, Field, ValidationInfo
+from typing import List, Dict, Any, Optional, Callable
+from datetime import timedelta, datetime, date
+from database import users_collection, complaints_collection, email_recipients_collection
+from auth import get_password_hash, verify_password, create_access_token, get_current_user
 from email_service import send_email
-from auth import get_current_user
-from bson import ObjectId
+from delete_service import start_scheduler, delete_old_cancelled_complaints
+from bson import ObjectId , errors
 from bson.errors import InvalidId
-from datetime import datetime
+from collections import OrderedDict
+from pymongo.errors import ConnectionFailure
+from jose import JWTError, jwt
+from auth import SECRET_KEY, ALGORITHM
+from pdf_service import generate_complaint_pdf_from_data # Import the new PDF service
+import io # For StreamingResponse
+from pydantic_core import core_schema
 
 app = FastAPI()
 
@@ -19,22 +27,82 @@ app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
-# Models
-# Mapping ระหว่างประเภทข้อร้องเรียนกับอีเมลปลายทาง
-EMAIL_RECIPIENTS = {
-    "ด้านบุคลากร": "telergamer@gmail.com",
-    "การบริการงานวิจัย": "research@example.com",
-    "การบริการวิชาการ": "academic@example.com",
-    "การบริหารจัดการของ PIM": "management@example.com",
-    "การบริการแก่นักศึกษา": "studentservices@example.com",
-    "อื่นๆ": "other@example.com"
-}
+# --- Updated PyObjectId for Pydantic v2 ---
+class PyObjectId(ObjectId):
+    @classmethod
+    def __get_validators__(cls):
+        # Pydantic v1 style, but __get_pydantic_core_schema__ is preferred in v2
+        # We'll keep validate for clarity, but core_schema handles the main logic
+        yield cls.validate
 
-class UserCreate(BaseModel):
+    @classmethod
+    def validate(cls, v: Any, _: ValidationInfo) -> ObjectId: # Add ValidationInfo argument
+        """Validate that the input is a valid ObjectId string or already an ObjectId."""
+        if isinstance(v, ObjectId):
+            return v
+        if ObjectId.is_valid(str(v)):
+            return ObjectId(str(v))
+        raise ValueError("Invalid ObjectId")
+
+    @classmethod
+    def __get_pydantic_core_schema__(
+        cls, source_type: Any, handler: Callable[[Any], core_schema.CoreSchema]
+    ) -> core_schema.CoreSchema:
+        """
+        Return the Pydantic core schema for ObjectId.
+        Handles validation from string and serialization to string.
+        """
+        # Schema to validate input is a string and a valid ObjectId format
+        from_string_schema = core_schema.chain_schema(
+            [
+                core_schema.str_schema(),
+                core_schema.no_info_plain_validator_function(cls.validate),
+            ]
+        )
+
+        # Schema allows either an actual ObjectId instance or a valid string representation
+        # It also defines how to serialize ObjectId to string
+        return core_schema.json_or_python_schema(
+            json_schema=from_string_schema, # How to validate from JSON (string)
+            python_schema=core_schema.union_schema( # How to validate from Python
+                [
+                    # Allow ObjectId instances directly
+                    core_schema.is_instance_schema(ObjectId),
+                    # Allow strings that validate via from_string_schema
+                    from_string_schema,
+                ]
+            ),
+            # How to serialize the ObjectId to a plain value (string)
+            serialization=core_schema.plain_serializer_function_ser_schema(str),
+        )
+
+    @classmethod
+    def __get_pydantic_json_schema__(
+        cls, core_schema_obj: core_schema.CoreSchema, handler: Callable[[Any], Dict[str, Any]]
+    ) -> Dict[str, Any]:
+        """
+        Return the JSON schema representation (used in OpenAPI).
+        Represents ObjectId as a string.
+        """
+        # Get the default schema generated by Pydantic
+        json_schema = handler(core_schema_obj)
+        # Update it to specify the type as 'string' and add an example
+        json_schema.update(type='string', example='507f1f77bcf86cd799439011')
+        return json_schema
+
+    # __modify_schema__ is removed as it's deprecated in Pydantic v2
+
+# --- End Updated PyObjectId ---
+
+class User(BaseModel):
     username: str
     password: str
     role: str  # "user", "admin", "high_admin"
+    team: str
 
+class Email(BaseModel):
+    team: str
+    email: str
 class UserLogin(BaseModel):
     username: str
     password: str
@@ -50,23 +118,110 @@ class Complaint(BaseModel):
 class ComplaintUpdate(BaseModel):
     status: str
 
+class EmailResponseWithId(BaseModel):
+    id: PyObjectId = Field(default_factory=PyObjectId, alias="_id") # Use 'id' or '_id'
+    team: str
+    email: str
+
+    class Config:
+        allow_population_by_field_name = True
+        arbitrary_types_allowed = True
+        json_encoders = {ObjectId: str}
+
+# Define a Pydantic model for the expected JSON payload
+class ForwardComplaintPayload(BaseModel):
+    severity_level: str
+    recipients: List[Dict[str, Any]]
+    correction1: str
+    inspector_name1: str
+    inspection_date1: str
+    correction2: str
+    inspector_name2: str
+    inspection_date2: str
+    correction3: str
+    inspector_name3: str
+    inspection_date3: str
+    correction4: str
+    inspector_name4: str
+    inspection_date4: str
+    correction5: str
+    inspector_name5: str
+    inspection_date5: str
+    # approver_recommendation: str
+
+
 # Routes
 
-# Render Login Page
+# Render first Page
 @app.get("/", response_class=HTMLResponse)
-async def show_login_page(request: Request):
-    return templates.TemplateResponse("login.html", {"request": request})
+async def show_first_page(request: Request):
+    return templates.TemplateResponse("complaint.html", {"request": request})
+
+# async def show_login_page(request: Request, access_token: Optional[str] = Cookie(None)):
+#     if access_token:
+#         try:
+#             # Verify the token
+#             payload = jwt.decode(access_token, SECRET_KEY, algorithms=[ALGORITHM])
+#             username: str = payload.get("sub")
+#             role: str = payload.get("role")
+
+#             # Check if the user exists in the database
+#             user = users_collection.find_one({"username": username})
+#             if user is not None:
+#                     return RedirectResponse(url="/admin_complaints", status_code=303)
+#             else:
+#                 # User not found, treat as if no token
+#                 return templates.TemplateResponse("login.html", {"request": request})
+
+#         except JWTError:
+#             # Token is invalid, treat as if no token
+#             return templates.TemplateResponse("login.html", {"request": request})
+#     else:
+#         # No token found, show the login page
+#         return templates.TemplateResponse("login.html", {"request": request})
 
 # Handle Login
 @app.post("/login")
-async def login_user(username: str = Form(...), password: str = Form(...)):
-    db_user = users_collection.find_one({"username": username})
-    if not db_user or not verify_password(password, db_user["password"]):
-        raise HTTPException(status_code=400, detail="Incorrect username or password")
-    
-    token = create_access_token(data={"sub": db_user["username"], "role": db_user["role"]}, expires_delta=timedelta(minutes=60))
-    redirect_url = "/admin_complaints" if db_user["role"] in ["admin", "superadmin"] else "/complaint"
-    return JSONResponse(content={"token": token, "redirect_url": redirect_url})
+async def login_user(response: Response, username: str = Form(...), password: str = Form(...)): # add response: Response
+    try:
+        db_user = users_collection.find_one({"username": username})
+        if not db_user or not verify_password(password, db_user["password"]):
+            raise HTTPException(status_code=400, detail="Incorrect username or password")
+
+        token = create_access_token(data={"sub": db_user["username"], "role": db_user["role"]}, expires_delta=timedelta(minutes=120))
+        redirect_url = "/admin_complaints" if db_user["role"] in ["admin", "alladmin"] else "/forwardeds"
+        
+        # Set the token in a cookie (optional, but good for fallback)
+        response.set_cookie(key="access_token", value=token, httponly=True, max_age=3600) # 1 hour
+        
+        return JSONResponse(content={"token": token, "redirect_url": redirect_url})
+    except ConnectionFailure as e:
+        raise HTTPException(status_code=500, detail="Database connection failed")
+
+# Render login Page
+@app.get("/login", response_class=HTMLResponse)
+async def show_login_page(request: Request, access_token: Optional[str] = Cookie(None)):
+    if access_token:
+        try:
+            # Verify the token
+            payload = jwt.decode(access_token, SECRET_KEY, algorithms=[ALGORITHM])
+            username: str = payload.get("sub")
+            role: str = payload.get("role")
+
+            # Check if the user exists in the database
+            user = users_collection.find_one({"username": username})
+            if user is not None:
+                    return RedirectResponse(url="/admin_complaints", status_code=303)
+            else:
+                # User not found, treat as if no token
+                return templates.TemplateResponse("login.html", {"request": request})
+
+        except JWTError:
+            # Token is invalid, treat as if no token
+            return templates.TemplateResponse("login.html", {"request": request})
+    else:
+        # No token found, show the login page
+        return templates.TemplateResponse("login.html", {"request": request})
 
 # Render Register Page
 @app.get("/register", response_class=HTMLResponse)
@@ -75,7 +230,7 @@ async def show_register_page(request: Request):
 
 # Handle Register
 @app.post("/register")
-def register_user(username: str = Form(...), password: str = Form(...), role: str = Form(...)):
+def register_user(username: str = Form(...), password: str = Form(...)):
     existing_user = users_collection.find_one({"username": username})
     if existing_user:
         return JSONResponse(status_code=400, content={"detail": "Username already exists"})
@@ -84,7 +239,8 @@ def register_user(username: str = Form(...), password: str = Form(...), role: st
     users_collection.insert_one({
         "username": username,
         "password": hashed_password,
-        "role": role
+        "role": 'user',
+        "team": 'user'
     })
     return RedirectResponse(url="/", status_code=303)
 
@@ -92,6 +248,72 @@ def register_user(username: str = Form(...), password: str = Form(...), role: st
 @app.get("/complaint", response_class=HTMLResponse)
 async def show_complaint_page(request: Request):
     return templates.TemplateResponse("complaint.html", {"request": request})
+
+# Email Management
+@app.get("/api/emails", response_model=List[Email])
+async def get_emails(current_user: dict = Depends(get_current_user)):
+    if current_user["role"] not in ["superadmin", "alladmin"]:
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    emails = list(email_recipients_collection.find())
+    for email in emails:
+        email["email_id"] = str(email["_id"])  # 👈 เพิ่ม field ใหม่ชื่อ email_id
+        del email["_id"]                       # 👈 ลบ _id ออกเพื่อไม่ให้ frontend สับสน
+    return emails
+
+
+@app.get("/api/emails/{email_id}")
+async def get_email_by_id(email_id: str, current_user: dict = Depends(get_current_user)):
+    # ตรวจสอบสิทธิ์ (เลือกได้ว่าจะต้องใช้ role ไหนหรือเปล่า)
+    if current_user["role"] not in ["superadmin", "alladmin"]:
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+
+    try:
+        object_id = ObjectId(email_id)
+    except errors.InvalidId:
+        raise HTTPException(status_code=400, detail="Invalid email ID format")
+
+    email = email_recipients_collection.find_one({"_id": object_id})
+    if not email:
+        raise HTTPException(status_code=404, detail="Email not found")
+
+    return {
+        "email_id": str(email["_id"]),
+        "team": email["team"],
+        "email": email["email"]
+    }
+
+@app.put("/api/emails/{email_id}")
+async def update_email(email_id: str, email: Email, current_user: dict = Depends(get_current_user)):
+    if current_user["role"] not in ["superadmin", "alladmin"]:
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    
+    # Validate email_id format
+    try:
+        object_id = ObjectId(email_id)
+    except errors.InvalidId:
+        raise HTTPException(status_code=400, detail="Invalid email ID format")
+
+    email_data = email.dict()
+    del email_data["team"]
+
+    result = email_recipients_collection.update_one(
+        {"_id": object_id}, {"$set": email_data}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Email not found")
+    
+    return {"message": "Email updated"}
+
+
+@app.delete("/api/emails/{email_id}")
+async def delete_email(email_id: str, current_user: dict = Depends(get_current_user)):
+    if current_user["role"] not in ["superadmin", "alladmin"]:
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    result = email_recipients_collection.delete_one({"_id": ObjectId(email_id)})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Email not found")
+    return {"message": "Email deleted"}
 
 # Handle Complaint Submission
 @app.post("/submit-complaint")
@@ -105,7 +327,7 @@ def submit_complaint(
     otherTeam: str = Form(None)  # สำหรับกรณีที่เลือก "อื่นๆ"
 ):
     # กำหนดประเภทข้อร้องเรียนที่ใช้งาน
-    complaint_team = otherTeam if team == "อื่นๆ" else team
+    # complaint_team = otherTeam if team == "อื่นๆ" else team
     
     # เพิ่มข้อมูลลง MongoDB
     complaint = {
@@ -114,13 +336,17 @@ def submit_complaint(
         "name": name,
         "date": date,
         "contact": contact,
-        "team": complaint_team,
+        "team": team,
         "status": "Pending"
     }
     result = complaints_collection.insert_one(complaint)
     complaint_id = str(result.inserted_id)
     # กำหนดอีเมลปลายทาง
-    recipient_email = EMAIL_RECIPIENTS.get(complaint_team, "default@example.com")
+    email_recipient = email_recipients_collection.find_one({"team": team})
+    if email_recipient:
+        recipient_email = email_recipient["email"]
+    else:
+        recipient_email = "default@example.com"  # Default email if not found
     
     # ส่งอีเมล
     send_email(title, complaint_id, recipient_email)
@@ -170,13 +396,28 @@ async def show_reports_page(request: Request):
 @app.get("/forwardeds", response_class=HTMLResponse)
 async def show_forwardeds_page(request: Request):
     return templates.TemplateResponse("forwardeds.html", {"request": request})
-        
-# Handle Logout
+
+@app.get("/admin_download", response_class=HTMLResponse)
+async def show_admin_download_page(request: Request):
+    return templates.TemplateResponse("admin_download.html", {"request": request})
+
+@app.get("/cancelled_complaints", response_class=HTMLResponse)
+async def show_cancelled_complaints_page(request: Request):
+    return templates.TemplateResponse("cancelled_complaints.html", {"request": request})
+
+@app.get("/admin_control", response_class=HTMLResponse)
+async def show_admin_control_page(request: Request):
+    return templates.TemplateResponse("admin_control.html", {"request": request})
+
 @app.get("/logout")
 async def logout_user(response: Response):
     # ลบ Cookie (ถ้ามี)
     response.delete_cookie(key="access_token")
-    return {"message": "Logged out successfully"}
+    # Return a response that will trigger client-side action
+    return JSONResponse(
+        content={"message": "Logged out successfully", "clearLocalStorage": True},
+        headers={"Cache-Control": "no-cache, no-store, must-revalidate", "Pragma": "no-cache", "Expires": "0"}
+    )
 
 # ดึงข้อมูลคำร้องเฉพาะ ID
 @app.get("/admin/get-complaint/{id}")
@@ -187,7 +428,54 @@ def get_complaint(id: str):
     complaint["_id"] = str(complaint["_id"])  # แปลง ObjectId เป็น string
     return complaint
 
+# New Route: Get Completed Complaints
+@app.get("/admin/get-completed-complaints")
+async def get_completed_complaints():
+    # complaints = complaints_collection.find({"status": "Complete"})
+    complaints = complaints_collection.find()
+    complaints_list = []
+    for complaint in complaints:
+        complaints_list.append({
+            "_id": str(complaint["_id"]),
+            "title": complaint["title"],
+            "details": complaint["details"],
+            "name": complaint["name"],
+            "date": complaint["date"],
+            "contact": complaint["contact"],
+            "team": complaint["team"],
+            "status": complaint["status"],
+            "resolved_date": complaint.get("resolved_date")
+            .isoformat()
+            if complaint.get("resolved_date")
+            else None,
+            "inspector_name2": complaint.get("inspector_name2"),
+            "severity_level": complaint.get("severity_level"),
+            "correction2": complaint.get("correction2"),
+            "complete_date": complaint.get("complete_date").isoformat() if complaint.get("complete_date") else None,
+        })
+    return complaints_list
+
 # ส่งคำร้องไปยังหน่วยงาน
+@app.get("/admin/admit-complaint/{id}", response_class=HTMLResponse)
+async def admit_complaint(id: str, request: Request):  # เพิ่ม `request: Request`
+    try:
+        # ตรวจสอบว่า ID ถูกต้อง
+        username = users_collection.find_one({"username": ObjectId(id)})
+        complaint = complaints_collection.find_one({"_id": ObjectId(id)})
+        if not complaint:
+            raise HTTPException(status_code=404, detail="Complaint not found")
+        
+        # ส่งข้อมูลไปยัง admin_forward_complaint.html
+        return templates.TemplateResponse("admin_admit_complaint.html",{
+            "request": request,
+            "complaint": complaint,
+            "admin_name": username
+        }  # ใช้ `request` จากพารามิเตอร์
+        )
+    except InvalidId:
+        raise HTTPException(status_code=400, detail=f"Invalid complaint ID: {id}")
+
+# ส่งคำร้องไปยังหน้าอนุมัติของผู้บริหาร
 @app.get("/admin/forward-complaint/{id}", response_class=HTMLResponse)
 async def forward_complaint(id: str, request: Request):  # เพิ่ม `request: Request`
     try:
@@ -207,8 +495,8 @@ async def forward_complaint(id: str, request: Request):  # เพิ่ม `requ
     except InvalidId:
         raise HTTPException(status_code=400, detail=f"Invalid complaint ID: {id}")
 
-@app.get("/admin/admit-complaint/{id}", response_class=HTMLResponse)
-async def forward_complaint(id: str, request: Request):  # เพิ่ม `request: Request`
+@app.get("/admin/complete-complaint/{id}", response_class=HTMLResponse)
+async def complete_complaint(id: str, request: Request):  # เพิ่ม `request: Request`
     try:
         # ตรวจสอบว่า ID ถูกต้อง
         username = users_collection.find_one({"username": ObjectId(id)})
@@ -216,19 +504,76 @@ async def forward_complaint(id: str, request: Request):  # เพิ่ม `requ
         if not complaint:
             raise HTTPException(status_code=404, detail="Complaint not found")
         
-        # ส่งข้อมูลไปยัง admin_forward_complaint.html
-        return templates.TemplateResponse("admin_admit_complaint.html",{
+        # ส่งข้อมูลไปยัง admin_complete_complaint.html
+        return templates.TemplateResponse("admin_complete_complaint.html",{
             "request": request,
             "complaint": complaint,
             "admin_name": username
         }  # ใช้ `request` จากพารามิเตอร์
         )
     except InvalidId:
-        raise HTTPException(status_code=400, detail=f"Invalid complaint ID: {id}")
+        raise HTTPException(status_code=400, detail=f"Invalid complaint ID: {id}") 
+    
+@app.get("/admin/view-complete-complaint/{id}", response_class=HTMLResponse)
+async def view_complete_complaint(id: str, request: Request):  # เพิ่ม `request: Request`
+    try:
+        # ตรวจสอบว่า ID ถูกต้อง
+        username = users_collection.find_one({"username": ObjectId(id)})
+        complaint = complaints_collection.find_one({"_id": ObjectId(id)})
+        if not complaint:
+            raise HTTPException(status_code=404, detail="Complaint not found")
+        
+        # ส่งข้อมูลไปยัง admin_complete_complaint.html
+        return templates.TemplateResponse("admin_view_complete_complaint.html",{
+            "request": request,
+            "complaint": complaint,
+            "admin_name": username
+        }  # ใช้ `request` จากพารามิเตอร์
+        )
+    except InvalidId:
+        raise HTTPException(status_code=400, detail=f"Invalid complaint ID: {id}") 
+
+# --- New Endpoint for PDF Export ---
+@app.post("/admin/export-pdf/{complaint_id}")
+async def export_complaint_to_pdf_endpoint(complaint_id: str, current_user: dict = Depends(get_current_user)):
+    try:
+        obj_complaint_id = ObjectId(complaint_id)
+    except InvalidId:
+        raise HTTPException(status_code=400, detail=f"Invalid complaint ID format: {complaint_id}")
+
+    complaint_data = complaints_collection.find_one({"_id": obj_complaint_id})
+
+    if not complaint_data:
+        raise HTTPException(status_code=404, detail="Complaint not found")
+
+    # Convert ObjectId to string for display and ensure all data is serializable if needed
+    complaint_data["_id"] = str(complaint_data["_id"])
+    
+    # Add any additional data needed for the PDF template not directly in complaint_data
+    # For example, the user who is exporting or a timestamp for export
+    complaint_data["processed_by_admin"] = current_user.get("username", "N/A")
+    complaint_data["export_date"] = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
+
+    try:
+        pdf_bytes = generate_complaint_pdf_from_data(complaint_data)
+    except RuntimeError as e: # Catch errors from PDF template loading
+        raise HTTPException(status_code=500, detail=f"Could not generate PDF: {e}")
+    except Exception as e:
+        # Log the full error for debugging
+        print(f"Unexpected error during PDF generation: {e}")
+        raise HTTPException(status_code=500, detail=f"An unexpected error occurred while generating the PDF: {str(e)}")
+
+    return StreamingResponse(io.BytesIO(pdf_bytes),
+                            media_type="application/pdf",
+                            headers={"Content-Disposition": f"attachment; filename=complaint_report_{complaint_id}.pdf"})
 
 @app.post("/admin/admit-complaint/{id}")
 def resolve_complaint(id: str, department: str = Form(...), additional_info: str = Form(...)):
-    # อัปเดตสถานะเป็น Resolved ใน MongoDB
+
+    if not additional_info:
+        additional_info = '-'
+
+    # อัปเดตสถานะเป็น Admit ใน MongoDB
     result = complaints_collection.update_one(
         {"_id": ObjectId(id)},
         {
@@ -260,11 +605,68 @@ def get_complaints():
             "contact": complaint["contact"],
             "team": complaint["team"],
             "status": complaint["status"],
+            "cancellation_reason": complaint.get("cancellation_reason"),
+            "approver_recommendation": complaint.get("approver_recommendation"),
+            
         })
     return response
 
-def get_current_user_Mock():
-    return {"username": "admin_user"}
+# no use
+# @app.get("/admin/get-complaints-with-user-data")
+# def get_complaints_with_user_data(
+#     current_user: dict = Depends(get_current_user),
+#     status: str = Query(None),
+#     team: str = Query(None),
+#     sort_by: str = Query("date"),  # Default sorting by date
+#     sort_order: str = Query("desc"),  # Default descending order (newest first)
+#     page: int = Query(1, ge=1),  # Page number, must be >= 1
+#     per_page: int = Query(20, ge=1, le=100),  # Items per page, 1-100
+# ):
+#     query = {}
+#     if status:
+#         query["status"] = status
+#     if team:
+#         query["team"] = team
+#     if current_user["role"] == "admin":
+#         query["team"] = current_user["team"]
+
+#     # Sorting
+#     sort_direction = -1 if sort_order == "desc" else 1
+#     sort_field = sort_by
+#     if sort_by == "date":
+#         sort_field = "date"
+
+#     # Pagination
+#     skip = (page - 1) * per_page
+
+#     complaints = complaints_collection.find(query).sort(sort_field, sort_direction).skip(skip).limit(per_page)
+#     total_complaints = complaints_collection.count_documents(query)
+
+#     response = []
+#     for complaint in complaints:
+#         response.append({
+#             "id": str(complaint["_id"]),
+#             "title": complaint["title"],
+#             "details": complaint["details"],
+#             "name": complaint["name"],
+#             "date": complaint["date"],
+#             "contact": complaint["contact"],
+#             "team": complaint["team"],
+#             "status": complaint["status"],
+#             "cancellation_reason": complaint.get("cancellation_reason"),
+#             "approver_recommendation": complaint.get("approver_recommendation"),
+#             "deletion_scheduled": complaint.get("deletion_scheduled"),
+#         })
+
+#     return {
+#         "complaints": response,
+#         "total_complaints": total_complaints,
+#         "page": page,
+#         "per_page": per_page,
+#         "user_role": current_user["role"],
+#         "user_team": current_user["team"],
+#     }
+
 
 @app.get("/admin/get-username")
 def get_username(current_user: dict = Depends(get_current_user)):
@@ -274,35 +676,410 @@ def get_username(current_user: dict = Depends(get_current_user)):
     #     return JSONResponse(content={"msg": "User not found"}, status_code=404)
     return {"username": current_user["username"]}
 
-@app.post("/admin/forward-complaint/{id}")
-async def admit_complaint(
-    id: str,
-    severity_level: str = Form(...),  # ระดับความรุนแรง
-    recipients: str = Form(...),     # รายชื่อผู้รับเรื่อง (ส่งเป็น JSON string)
-):
+@app.get("/admin/get-userrole")
+def get_userrole(current_user: dict = Depends(get_current_user)):
+    return {"role": current_user["role"]}
+
+@app.get("/admin/get-userteam")
+def get_userteam(current_user: dict = Depends(get_current_user)):
+    return {"team": current_user["team"]}
+
+@app.post("/admin/save-complaint/{id}")
+async def admit_complaint(id: str, payload: ForwardComplaintPayload = Body(...)):
     try:
-        # แปลง recipients จาก JSON string เป็น Python list
-        import json
-        recipients_list = json.loads(recipients)
+        # Access the payload data
+        severity_level = payload.severity_level
+        recipients_list = payload.recipients
+        correction1 = payload.correction1
+        inspector_name1 = payload.inspector_name1
+        inspection_date1 = payload.inspection_date1
+        correction2 = payload.correction2
+        inspector_name2 = payload.inspector_name2
+        inspection_date2 = payload.inspection_date2
+        correction3 = payload.correction3
+        inspector_name3 = payload.inspector_name3
+        inspection_date3 = payload.inspection_date3
+        correction4 = payload.correction4
+        inspector_name4 = payload.inspector_name4
+        inspection_date4 = payload.inspection_date4
+        correction5 = payload.correction5
+        inspector_name5 = payload.inspector_name5
+        inspection_date5 = payload.inspection_date5
+
+        update_data = OrderedDict([
+            ("severity_level", severity_level),
+            ("recipients", recipients_list),
+            ("status", "Admit"),
+            ("admit_date", datetime.utcnow()),
+            ("correction1", correction1),
+            ("inspector_name1", inspector_name1),
+            ("inspection_date1", inspection_date1),
+            ("correction2", correction2),
+            ("inspector_name2", inspector_name2),
+            ("inspection_date2", inspection_date2),
+            ("correction3", correction3),
+            ("inspector_name3", inspector_name3),
+            ("inspection_date3", inspection_date3),
+            ("correction4", correction4),
+            ("inspector_name4", inspector_name4),
+            ("inspection_date4", inspection_date4),
+            ("correction5", correction5),
+            ("inspector_name5", inspector_name5),
+            ("inspection_date5", inspection_date5),
+        ])
+
+
 
         # อัปเดตข้อมูลคำร้องใน MongoDB
         result = complaints_collection.update_one(
             {"_id": ObjectId(id)},
             {
-                "$set": {
-                    "severity_level": severity_level,  # ระดับความรุนแรง
-                    "recipients": recipients_list,     # รายชื่อผู้รับเรื่อง
-                    "status": "Forwarded",                # อัปเดตสถานะเป็น "Admit"
-                    "admit_date": datetime.utcnow(),  # วันที่ Admit
-                }
+                "$set": update_data
             }
         )
 
         # ตรวจสอบว่าอัปเดตสำเร็จหรือไม่
         if result.modified_count == 1:
-            return {"message": "Complaint Admit successfully"}
+            return {"message": "Complaint Forwarded successfully"}
         else:
             raise HTTPException(status_code=404, detail="Complaint not found or no changes made")
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/admin/forward-complaint/{id}")
+async def forward_complaint(id: str, payload: ForwardComplaintPayload = Body(...)):
+    try:
+        # Validate ObjectId format early
+        try:
+            complaint_obj_id = ObjectId(id)
+        except InvalidId:
+            raise HTTPException(status_code=400, detail=f"Invalid complaint ID format: {id}")
+
+        # Access the payload data
+        severity_level = payload.severity_level
+        recipients_list = payload.recipients
+        correction1 = payload.correction1
+        inspector_name1 = payload.inspector_name1
+        inspection_date1 = payload.inspection_date1
+        correction2 = payload.correction2
+        inspector_name2 = payload.inspector_name2
+        inspection_date2 = payload.inspection_date2
+        correction3 = payload.correction3
+        inspector_name3 = payload.inspector_name3
+        inspection_date3 = payload.inspection_date3
+        correction4 = payload.correction4
+        inspector_name4 = payload.inspector_name4
+        inspection_date4 = payload.inspection_date4
+        correction5 = payload.correction5
+        inspector_name5 = payload.inspector_name5
+        inspection_date5 = payload.inspection_date5
+        # recommendation = payload.approver_recommendation # This was commented out, keep as is
+
+        update_data = OrderedDict([
+            ("severity_level", severity_level),
+            ("recipients", recipients_list),
+            ("status", "Forwarded"),
+            ("admit_date", datetime.utcnow()), # Consider renaming this field if status is 'Forwarded' e.g., 'forwarded_date'
+            ("correction1", correction1),
+            ("inspector_name1", inspector_name1),
+            ("inspection_date1", inspection_date1),
+            ("correction2", correction2),
+            ("inspector_name2", inspector_name2),
+            ("inspection_date2", inspection_date2),
+            ("correction3", correction3),
+            ("inspector_name3", inspector_name3),
+            ("inspection_date3", inspection_date3),
+            ("correction4", correction4),
+            ("inspector_name4", inspector_name4),
+            ("inspection_date4", inspection_date4),
+            ("correction5", correction5),
+            ("inspector_name5", inspector_name5),
+            ("inspection_date5", inspection_date5),
+        ])
+
+        # อัปเดตข้อมูลคำร้องใน MongoDB
+        result = complaints_collection.update_one(
+            {"_id": complaint_obj_id}, # Use the validated ObjectId
+            {"$set": update_data}
+        )
+
+        # ตรวจสอบว่าอัปเดตสำเร็จหรือไม่
+        if result.modified_count == 1:
+            # --- Start: Added Email Sending Logic ---
+            try:
+                # Fetch the complaint again to get the title (or use data already available if possible)
+                # It's slightly inefficient but ensures we have the correct title
+                complaint_data = complaints_collection.find_one({"_id": complaint_obj_id})
+                if complaint_data:
+                    complaint_title = complaint_data.get("title", "Complaint Forwarded") # Default title if missing
+                    recipient_email = "janramsae@pim.ac.th" # The target email address
+                    
+                    # Call the send_email function
+                    # Modify the subject or body in email_service.py if needed for "Forwarded" status
+                    send_email(
+                        title=f"Forwarded: {complaint_title}", # Modify title slightly for clarity
+                        complaint_id=id,
+                        recipient_email=recipient_email
+                    )
+                    print(f"Forwarded email sent successfully to {recipient_email} for complaint {id}") # Optional logging
+                else:
+                     # This case should ideally not happen if modified_count was 1
+                     print(f"Warning: Complaint {id} updated but could not be found for email notification.")
+
+            except Exception as email_error:
+                # Log the email sending error but don't fail the main API response
+                print(f"Error sending forwarded email notification for complaint {id}: {email_error}")
+            # --- End: Added Email Sending Logic ---
+
+            return {"message": "Complaint Forwarded successfully"}
+        elif result.matched_count == 1 and result.modified_count == 0:
+             # Handle the case where the document was found but not modified (e.g., data was the same)
+             # You might still want to send an email here depending on requirements
+             # For now, treat as "no changes made"
+             raise HTTPException(status_code=304, detail="Complaint found but no changes were made.")
+        else:
+            # Document with the given ID was not found
+            raise HTTPException(status_code=404, detail="Complaint not found.")
+
+    # Keep the specific InvalidId handler if you didn't add it earlier
+    except InvalidId:
+         raise HTTPException(status_code=400, detail=f"Invalid complaint ID format: {id}")
+    except HTTPException as http_exc:
+        # Re-raise HTTPException to ensure FastAPI handles it correctly
+        raise http_exc
+    except Exception as e:
+        # Catch any other unexpected errors
+        print(f"An unexpected error occurred in forward_complaint: {e}") # Log the error
+        raise HTTPException(status_code=500, detail=f"An internal server error occurred: {str(e)}")
+
+# @app.post("/admin/forward-complaint/{id}")
+# async def forward_complaint(id: str, payload: ForwardComplaintPayload = Body(...)):
+#     try:
+#         # Access the payload data
+#         severity_level = payload.severity_level
+#         recipients_list = payload.recipients
+#         correction1 = payload.correction1
+#         inspector_name1 = payload.inspector_name1
+#         inspection_date1 = payload.inspection_date1
+#         correction2 = payload.correction2
+#         inspector_name2 = payload.inspector_name2
+#         inspection_date2 = payload.inspection_date2
+#         correction3 = payload.correction3
+#         inspector_name3 = payload.inspector_name3
+#         inspection_date3 = payload.inspection_date3
+#         correction4 = payload.correction4
+#         inspector_name4 = payload.inspector_name4
+#         inspection_date4 = payload.inspection_date4
+#         correction5 = payload.correction5
+#         inspector_name5 = payload.inspector_name5
+#         inspection_date5 = payload.inspection_date5
+#         # recommendation = payload.approver_recommendation
+
+#         update_data = OrderedDict([
+#             ("severity_level", severity_level),
+#             ("recipients", recipients_list),
+#             ("status", "Forwarded"),
+#             ("admit_date", datetime.utcnow()),
+#             ("correction1", correction1),
+#             ("inspector_name1", inspector_name1),
+#             ("inspection_date1", inspection_date1),
+#             ("correction2", correction2),
+#             ("inspector_name2", inspector_name2),
+#             ("inspection_date2", inspection_date2),
+#             ("correction3", correction3),
+#             ("inspector_name3", inspector_name3),
+#             ("inspection_date3", inspection_date3),
+#             ("correction4", correction4),
+#             ("inspector_name4", inspector_name4),
+#             ("inspection_date4", inspection_date4),
+#             ("correction5", correction5),
+#             ("inspector_name5", inspector_name5),
+#             ("inspection_date5", inspection_date5),
+#         ])
+
+
+
+#         # อัปเดตข้อมูลคำร้องใน MongoDB
+#         result = complaints_collection.update_one(
+#             {"_id": ObjectId(id)},
+#             {
+#                 "$set": update_data
+#             }
+#         )
+
+#         # ตรวจสอบว่าอัปเดตสำเร็จหรือไม่
+#         if result.modified_count == 1:
+#             return {"message": "Complaint Forwarded successfully"}
+#         else:
+#             raise HTTPException(status_code=404, detail="Complaint not found or no changes made")
+
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=str(e))
+    
+@app.post("/admin/complete-complaint/{id}")
+def complete_complaint(id: str, approver_recommendation: str = Form(...)):
+    # อัปเดตสถานะเป็น complete ใน MongoDB
+    result = complaints_collection.update_one(
+        {"_id": ObjectId(id)},
+        {
+            "$set": {
+                "status": "Complete",
+                "complete_date": datetime.utcnow(),
+                "approver_recommendation": approver_recommendation,
+            }
+        }
+    )
+
+    if result.modified_count == 1:
+        return {"message": "Complaint complete successfully"}
+    else:
+        return {"error": "Failed to complete complaint"}
+
+@app.post("/admin/undo-complaint/{id}")
+def undo_complaint(id: str, approver_recommendation: str = Form(...)):
+    # อัปเดตสถานะเป็น complete ใน MongoDB
+    result = complaints_collection.update_one(
+        {"_id": ObjectId(id)},
+        {
+            "$set": {
+                "status": "Admit",
+                "approver_recommendation": approver_recommendation,
+            }
+        }
+    )
+
+    if result.modified_count == 1:
+        return {"message": "Complaint complete successfully"}
+    else:
+        return {"error": "Failed to complete complaint"}
+    
+# @app.post("/admin/cancel-complaint/{id}")
+# async def cancel_complaint(id: str, cancellation_reason: str = Form(...), approver_recommendation: str = Form(...)):
+#     try:
+#         complaint = complaints_collection.find_one({"_id": ObjectId(id)})
+#         if not complaint:
+#             raise HTTPException(status_code=404, detail="Complaint not found")
+
+#         # Update complaint status to 'Cancelled' and add cancellation reason
+#         update_result = complaints_collection.update_one(
+#             {"_id": ObjectId(id)},
+#             {
+#                 "$set": {
+#                     "status": "Cancelled",
+#                     "cancellation_reason": cancellation_reason,
+#                     "cancelled_date": datetime.utcnow(),
+#                     "deletion_scheduled": datetime.utcnow() + timedelta(days=30),
+#                     "approver_recommendation": approver_recommendation,
+#                 }
+#             }
+#         )
+
+#         if update_result.modified_count == 1:
+#             return JSONResponse(content={"message": "Complaint cancelled successfully"})
+#         else:
+#             return HTTPException(status_code=404, detail="Complaint not found or already cancelled")
+#     except InvalidId:
+#         raise HTTPException(status_code=400, detail=f"Invalid complaint ID: {id}")
+
+# @app.post("/admin/undo-cancellation/{id}")
+# async def undo_cancellation(id: str):
+#     try:
+#         complaint = complaints_collection.find_one({"_id": ObjectId(id)})
+#         if not complaint:
+#             raise HTTPException(status_code=404, detail="Complaint not found")
+
+#         # Update complaint status to 'Admit' and remove cancellation reason
+#         update_result = complaints_collection.update_one(
+#             {"_id": ObjectId(id)},
+#             {
+#                 "$set": {
+#                     "status": "Admit",
+#                     "cancellation_reason": None,
+#                     "cancelled_date": None,
+#                     "deletion_scheduled": None,
+#                 }
+#             }
+#         )
+#         if update_result.modified_count == 1:
+#             return {"message": "Complaint cancellation undone successfully"}
+#         else:
+#             return HTTPException(status_code=404, detail="Complaint not found or already undone")
+
+#     except InvalidId:
+#         raise HTTPException(status_code=400, detail=f"Invalid complaint ID: {id}")
+
+# start task
+start_scheduler()
+
+# --- Admin Management (Now using /register and /login) ---
+
+# Get Admins (Now using /register)
+@app.get("/api/admins")
+async def get_admins(current_user: dict = Depends(get_current_user)):
+    if current_user["role"] not in ["superadmin", "alladmin"]:
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    
+    admins = list(users_collection.find({"role": {"$in": ["admin", "superadmin", "alladmin"]}}))
+    for admin in admins:
+        admin["_id"] = str(admin["_id"])
+        admin.pop("password", None)
+    return admins
+
+# Create Admin (Now using /register)
+@app.post("/api/admins")
+async def create_admin(admin: User, current_user: dict = Depends(get_current_user)):
+    if current_user["role"] not in ["superadmin", "alladmin"]:
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    
+    existing_admin = users_collection.find_one({"username": admin.username})
+    if existing_admin:
+        raise HTTPException(status_code=400, detail="Username already exists")
+    
+    hashed_password = get_password_hash(admin.password)
+    admin.password = hashed_password
+    result = users_collection.insert_one(admin.dict())
+    return {"message": "Admin created", "id": str(result.inserted_id)}
+
+# Update Admin (Now using /register)
+@app.put("/api/admins/{admin_id}")
+async def update_admin(admin_id: str, admin: User, current_user: dict = Depends(get_current_user)):
+    if current_user["role"] not in ["superadmin", "alladmin"]:
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    
+    # Fetch the user with _id
+    user_with_id = users_collection.find_one({"username": admin.username})
+    if not user_with_id:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # user_id = user_with_id["_id"]
+    
+    update_data = admin.dict(exclude_unset=True)
+    if "password" in update_data:
+        update_data["password"] = get_password_hash(update_data["password"])
+    
+    result = users_collection.update_one({"_id": ObjectId(admin_id)}, {"$set": update_data})
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Admin not found")
+    return {"message": "Admin updated"}
+
+# Delete Admin (Now using /register)
+@app.delete("/api/admins/{admin_id}")
+async def delete_admin(admin_id: str, current_user: dict = Depends(get_current_user)):
+    if current_user["role"] not in ["superadmin", "alladmin"]:
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    
+    result = users_collection.delete_one({"_id": ObjectId(admin_id)})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Admin not found")
+    return {"message": "Admin deleted"}
+
+# --- Main Execution ---
+if __name__ == "__main__":
+    # Use environment variables for host and port, default if not set
+    host = os.getenv("HOST", "127.0.0.1") # Default to localhost for development
+    port = int(os.getenv("PORT", 8000))  # Default to 8000
+    reload = os.getenv("RELOAD", "true").lower() == "true" # Enable reload by default for dev
+
+    print(f"Starting Uvicorn server on {host}:{port} with reload={'enabled' if reload else 'disabled'}")
+    uvicorn.run("main:app", host=host, port=port, reload=reload)

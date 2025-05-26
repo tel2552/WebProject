@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Control Panel</title>
+    <link rel="icon" href="/static/favicon.ico" type="image/x-icon">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="stylesheet" href="/static/css/admin_control.css">
+</head>
+<body>
+    <!-- Navbar -->
+    {% include 'navbar.html' %}
+    <div style="text-align: center;">
+        <h1>Admin Control Panel</h1>
+    </div>
+    <div class="container">
+        <h2>Manage Emails (Bug)</h2>
+        <table id="emails-table">
+            <thead>
+                <tr>
+                    <th>Team</th>
+                    <th>Email</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Email data will be loaded here -->
+            </tbody>
+        </table>
+
+        <h2>Manage Admins</h2>
+        <button class="btn" id="add-admin-btn">Add Admin</button>
+        <table id="admins-table">
+            <thead>
+                <tr>
+                    <th>Username</th>
+                    <th>Role</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Admin data will be loaded here -->
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Email Edit Modal -->
+    <div id="email-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" id="email-close">&times;</span>
+            <h2>Edit Email</h2>
+            <form id="email-edit-form">
+                <div class="form-group">
+                    <label for="edit-team">Team:</label>
+                    <input type="text" id="edit-team" name="team" readonly>
+                </div>
+                <div class="form-group">
+                    <label for="edit-email">Email:</label>
+                    <input type="email" id="edit-email" name="email" required>
+                </div>
+                <input type="hidden" id="edit-email-id" name="id">
+                <button type="submit" class="btn">Save Changes</button>
+            </form>
+            <div id="email-message" class="error-message"></div>
+        </div>
+    </div>
+    
+
+    <!-- Admin Add/Edit Modal -->
+    <div id="admin-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" id="admin-close">&times;</span>
+            <h2 id="admin-modal-title">Add Admin</h2>
+            <form id="admin-form">
+                <div class="form-group">
+                    <label for="admin-username">Username:</label>
+                    <input type="text" id="admin-username" name="username" required>
+                </div>
+                <div class="form-group">
+                    <label for="admin-password">Password:</label>
+                    <input type="password" id="admin-password" name="password">
+                </div>
+                <div class="form-group">
+                    <label for="admin-role">Role:</label>
+                    <select id="admin-role" name="role" required>
+                        <option value="admin">Admin</option>
+                        <option value="superadmin">Superadmin</option>
+                        <option value="alladmin">AllAdmin</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="admin-team">Team:</label>
+                    <select id="admin-team" name="team" required>
+                        <option value="ด้านบุคลากร">ด้านบุคลากร</option>
+                        <option value="การบริการงานวิจัย">การบริการงานวิจัย</option>
+                        <option value="การบริการวิชาการ">การบริการวิชาการ</option>
+                        <option value="การบริหารจัดการของ PIM">การบริหารจัดการของ PIM</option>
+                        <option value="การบริการแก่นักศึกษา">การบริการแก่นักศึกษา</option>
+                        <option value="อื่นๆ">อื่นๆ</option>
+                    </select>
+                </div>
+                <input type="hidden" id="admin-id" name="id">
+                <button type="submit" class="btn">Save</button>
+            </form>
+            <div id="admin-message" class="error-message"></div>
+        </div>
+    </div>
+
+    <script>
+        // admin_control.js
+
+        // Make variables globally accessible
+        const emailsTable = document.getElementById('emails-table')?.querySelector('tbody');
+        const adminsTable = document.getElementById('admins-table')?.querySelector('tbody');
+        const emailModal = document.getElementById('email-modal');
+        const adminModal = document.getElementById('admin-modal');
+        const emailCloseBtn = document.getElementById('email-close');
+        const adminCloseBtn = document.getElementById('admin-close');
+        const addAdminBtn = document.getElementById('add-admin-btn');
+        const emailForm = document.getElementById('email-edit-form');
+        const adminForm = document.getElementById('admin-form');
+        const emailMessage = document.getElementById('email-message');
+        const adminMessage = document.getElementById('admin-message');
+        const adminModalTitle = document.getElementById('admin-modal-title');
+        const adminPasswordInput = document.getElementById('admin-password');
+
+        // Function to display error messages
+        function displayErrorMessage(element, message) {
+            element.textContent = message;
+            element.classList.add('error-message');
+            element.classList.remove('success-message');
+        }
+
+        // Function to display success messages
+        function displaySuccessMessage(element, message) {
+            element.textContent = message;
+            element.classList.add('success-message');
+            element.classList.remove('error-message');
+        }
+
+        // Function to clear messages
+        function clearMessage(element) {
+            element.textContent = '';
+            element.classList.remove('error-message', 'success-message');
+        }
+
+        // Make editEmail() globally accessible
+        function editEmail(emailId) {
+            console.log("Editing email with ID:", emailId);
+            // Find the row that contains the clicked button
+            const row = document.querySelector(`#emails-table tbody button[onclick="editEmail('${emailId}')"]`).closest('tr');
+            if (row) {
+                const team = row.cells[0].textContent;
+                const email = row.cells[1].textContent;
+                document.getElementById('edit-team').value = team;
+                document.getElementById('edit-email').value = email;
+                document.getElementById('edit-email-id').value = emailId;
+                emailModal.style.display = 'block';
+                clearMessage(emailMessage);
+            } else {
+                console.error("Could not find the row for email ID:", emailId);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Function to fetch data with token
+            async function fetchDataWithToken(url, options = {}) {
+                const token = localStorage.getItem('access_token');
+                if (!token) {
+                    console.error('No access token found.');
+                    throw new Error('No access token found.'); // Throw an error if no token
+                }
+
+                const headers = {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                };
+
+                const response = await fetch(url, {
+                    ...options,
+                    headers: {
+                        ...headers,
+                        ...(options.headers || {})
+                    }
+                });
+
+                if (!response.ok) {
+                    let errorMessage = `Failed to fetch data (Status: ${response.status})`; // Include status code
+                    try {
+                        const errorData = await response.json();
+                        if (errorData.detail) {
+                            errorMessage = errorData.detail;
+                        } else if (errorData.message) {
+                            errorMessage = errorData.message;
+                        } else {
+                            errorMessage = JSON.stringify(errorData);
+                        }
+                    } catch (jsonError) {
+                        // If parsing as JSON fails, use the raw text
+                        try {
+                            errorMessage = await response.text();
+                        } catch (textError) {
+                            errorMessage = 'Failed to fetch data and could not parse error response';
+                        }
+                    }
+                    throw new Error(errorMessage);
+                }
+
+                return await response.json();
+            }
+
+            // --- Email Management ---
+
+            // Fetch and display emails
+            async function fetchEmails() {
+                try {
+                    const emails = await fetchDataWithToken('/api/emails');
+                    console.log("Emails from API:", emails);
+                    emailsTable.innerHTML = '';
+                    emails.forEach(email => {
+                        console.log("Current email object:", email);
+                        const row = emailsTable.insertRow();
+                        row.insertCell().textContent = email.team;
+                        row.insertCell().textContent = email.email;
+                        const actionsCell = row.insertCell();
+                        actionsCell.innerHTML = `
+                            <button class="btn btn-edit" onclick="editEmail('${email._id}')">Edit</button>
+                        `;
+                    });
+                } catch (error) {
+                    console.error('Error fetching emails:', error);
+                    displayErrorMessage(emailMessage, error.message);
+                }
+            }
+
+            // Save email changes
+            emailForm.addEventListener('submit', async (event) => {
+                event.preventDefault();
+                const emailId = document.getElementById('edit-email-id').value;
+                const newEmail = document.getElementById('edit-email').value;
+                try {
+                    await fetchDataWithToken(`/api/emails/${emailId}`, {
+                        method: 'PUT',
+                        body: JSON.stringify({ email: newEmail })
+                    });
+                    emailModal.style.display = 'none';
+                    displaySuccessMessage(emailMessage, 'Email updated successfully!');
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Success',
+                        text: 'Email updated successfully!'
+                    });
+                    fetchEmails();
+                } catch (error) {
+                    console.error('Error updating email:', error);
+                    displayErrorMessage(emailMessage, error.message);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: error.message
+                    });
+                }
+            });
+
+            // Close email modal
+            emailCloseBtn.addEventListener('click', () => {
+                emailModal.style.display = 'none';
+                clearMessage(emailMessage);
+            });
+
+            // --- Admin Management ---
+
+            // Fetch and display admins
+            async function fetchAdmins() {
+                try {
+                    const admins = await fetchDataWithToken('/api/admins');
+                    adminsTable.innerHTML = '';
+                    admins.forEach(admin => {
+                        const row = adminsTable.insertRow();
+                        row.insertCell().textContent = admin.username;
+                        row.insertCell().textContent = admin.role;
+                        const actionsCell = row.insertCell();
+                        actionsCell.innerHTML = `
+                            <button class="btn btn-edit" data-id="${admin._id}">Edit</button>
+                            <button class="btn btn-danger" data-id="${admin._id}">Delete</button>
+                        `;
+                    });
+                } catch (error) {
+                    console.error('Error fetching admins:', error);
+                    displayErrorMessage(adminMessage, error.message);
+                }
+            }
+
+            // Open admin add modal
+            addAdminBtn.addEventListener('click', () => {
+                adminModalTitle.textContent = 'Add Admin';
+                adminPasswordInput.required = true;
+                adminForm.reset();
+                document.getElementById('admin-id').value = '';
+                adminModal.style.display = 'block';
+                clearMessage(adminMessage);
+            });
+
+            // Open admin edit modal
+            adminsTable.addEventListener('click', (event) => {
+                const target = event.target;
+                if (target.classList.contains('btn-edit')) {
+                    adminModalTitle.textContent = 'Edit Admin';
+                    adminPasswordInput.required = false;
+                    const adminId = target.dataset.id;
+                    const row = target.closest('tr');
+                    const username = row.cells[0].textContent;
+                    const role = row.cells[1].textContent;
+                    document.getElementById('admin-username').value = username;
+                    document.getElementById('admin-role').value = role;
+                    document.getElementById('admin-id').value = adminId;
+                    adminModal.style.display = 'block';
+                    clearMessage(adminMessage);
+                }
+                if (target.classList.contains('btn-danger')) {
+                    const adminId = target.dataset.id;
+
+                    Swal.fire({
+                        title: 'Are you sure?',
+                        text: "This action cannot be undone!",
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonColor: '#d33',
+                        cancelButtonColor: '#3085d6',
+                        confirmButtonText: 'Yes, delete it!'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            deleteAdmin(adminId);
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Deleted!',
+                                text: 'Admin has been deleted.'
+                            });
+                        }
+                    });
+                }
+            });
+
+            // Save admin changes
+            adminForm.addEventListener('submit', async (event) => {
+                event.preventDefault();
+                const adminId = document.getElementById('admin-id').value;
+                const username = document.getElementById('admin-username').value;
+                const password = document.getElementById('admin-password').value;
+                const role = document.getElementById('admin-role').value;
+                const team = document.getElementById('admin-team').value;
+                const method = adminId ? 'PUT' : 'POST';
+                const url = adminId ? `/api/admins/${adminId}` : '/api/admins';
+                const body = { username, role, team };
+                if (password) {
+                    body.password = password;
+                }
+                try {
+                    await fetchDataWithToken(url, {
+                        method: method,
+                        body: JSON.stringify(body)
+                    });
+                    adminModal.style.display = 'none';
+                    displaySuccessMessage(adminMessage, 'Admin saved successfully!');
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Success',
+                        text: 'Admin saved successfully!'
+                    });
+                    fetchAdmins();
+                } catch (error) {
+                    console.error('Error saving admin:', error);
+                    displayErrorMessage(adminMessage, error.message);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: error.message
+                    });
+                }
+            });
+
+            // Delete admin
+            async function deleteAdmin(adminId) {
+                try {
+                    await fetchDataWithToken(`/api/admins/${adminId}`, {
+                        method: 'DELETE'
+                    });
+                    displaySuccessMessage(adminMessage, 'Admin deleted successfully!');
+                    fetchAdmins();
+                } catch (error) {
+                    console.error('Error deleting admin:', error);
+                    displayErrorMessage(adminMessage, error.message);
+                }
+            }
+
+            // Close admin modal
+            adminCloseBtn.addEventListener('click', () => {
+                adminModal.style.display = 'none';
+                clearMessage(adminMessage);
+            });
+
+            // Initial fetch
+            fetchEmails();
+            fetchAdmins();
+        });
+
+    </script>
+</body>
+</html>

@@ -1,0 +1,107 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    display: block;
+    background-image: url("/static/img/IMG_4022.jpg");
+    background-color: #cccccc;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: cover; /* ปรับให้เต็มจอ */
+    min-height: 100vh; /* บังคับให้เต็มจอเสมอ */
+}
+
+.content {
+    margin-left: 0; /* เริ่มต้นที่ 0 */
+    flex-grow: 1;
+    padding: 20px;
+    transition: margin-left 0.3s; /* ทำให้ขยับนุ่มนวล */
+}
+
+h1 {
+    font-size: 2.5em; /* ขนาดตัวอักษร */
+    font-weight: bold;
+    color: white;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    padding: 10px 20px; /* ปรับขนาด padding ให้พอดี */
+    background: linear-gradient(45deg, #006400, #00b894); /* ไล่สีเขียวเข้ม -> เขียวอ่อน */
+    border-radius: 10px;
+    text-shadow: 3px 3px 5px rgba(0, 0, 0, 0.3);
+    
+    display: inline-block; /* ทำให้พื้นหลังพอดีกับตัวอักษร */
+    text-align: center; /* จัดข้อความให้อยู่ตรงกลาง */
+    margin: 20px auto; /* ทำให้ h1 อยู่ตรงกลางแนวนอน */
+    width: auto; /* ป้องกันไม่ให้ขยายเกินตัวอักษร */
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 20px 0;
+    background-color: #f4f4f4;
+}
+
+th, td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+}
+
+th {
+    background-color: #f4f4f4;
+    color: #333;
+}
+
+tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
+
+.status {
+    font-weight: bold;
+    color: #007BFF;
+}
+
+.status-resolved {
+    color: green;
+}
+
+.status-pending {
+    color: red;
+}
+
+.status-admit {
+    color: orange;
+}
+
+.status-forwarded {
+    color: #1307ff;
+}
+
+.status-complete {
+    color: #28a745; /* Green color for complete status */
+}
+
+.btn-update {
+    color: white;
+    background-color: #007BFF;
+    border: none;
+    padding: 5px 10px;
+    cursor: pointer;
+}
+
+.btn-update:hover {
+    background-color: #0056b3;
+}
+
+.btn-success {
+    color: white;
+    background-color: #28a745;
+    border: none;
+    padding: 5px 10px;
+    cursor: pointer;
+}
+
+.btn-success:hover {
+    background-color: #218838;
+}

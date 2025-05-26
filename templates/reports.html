@@ -4,115 +4,32 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>คำร้องของหน่วยงาน</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            display: flex;
-        }
-
-        .navbar {
-            width: 250px;
-            background-color: #333;
-            color: white;
-            height: 100vh;
-            padding: 20px;
-            box-sizing: border-box;
-        }
-
-        .navbar a {
-            color: white;
-            text-decoration: none;
-            display: block;
-            padding: 10px;
-            margin: 5px 0;
-            border-radius: 4px;
-            transition: background-color 0.3s;
-        }
-
-        .navbar a:hover {
-            background-color: #575757;
-        }
-
-        .content {
-            flex-grow: 1;
-            padding: 20px;
-        }
-
-        h1 {
-            color: #333;
-            text-align: center;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 20px 0;
-        }
-
-        th, td {
-            border: 1px solid #ddd;
-            padding: 8px;
-            text-align: left;
-        }
-
-        th {
-            background-color: #f4f4f4;
-            color: #333;
-        }
-
-        tr:nth-child(even) {
-            background-color: #f9f9f9;
-        }
-
-        .status {
-            font-weight: bold;
-            color: #007BFF;
-        }
-
-        .status-resolved {
-            color: green;
-        }
-
-        .status-pending {
-            color: red;
-        }
-
-        .status-admit {
-            color: orange;
-        }
-
-        .btn-update {
-            color: white;
-            background-color: #007BFF;
-            border: none;
-            padding: 5px 10px;
-            cursor: pointer;
-        }
-
-        .btn-update:hover {
-            background-color: #0056b3;
-        }
-    </style>
+    <link rel="icon" href="/static/favicon.ico" type="image/x-icon">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="stylesheet" href="/static/css/reports.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600&display=swap" rel="stylesheet">
 </head>
 <body>
     <!-- Navbar -->
-    <div class="navbar">
-        <a href="/admin_complaints">คำร้องใหม่</a>
-        <a href="/reports">คำร้องของหน่วยงาน</a>
-        <a href="/forwardeds">อัพเดตคำร้อง</a>
-        <a href="#" onclick="logout()">ออกจากระบบ</a>
-    </div>
+    {% include 'navbar.html' %}
 
     <!-- Content -->
     <div class="content">
-        <h1>คำร้องของหน่วยงาน</h1>
+        <div style="text-align: center;">
+            <h1>คำร้องของหน่วยงาน</h1>
+        </div>
+        <label for="sort-options">เรียงลำดับ:</label>
+        <select id="sort-options" onchange="sortTable()">
+            <option value="newest">วันที่ใหม่ → เก่า</option>
+            <option value="oldest">วันที่เก่า → ใหม่</option>
+        </select>
         <table>
             <thead>
                 <tr>
                     <th>หัวข้อเรื่อง</th>
-                    <th>รายละเอียด</th>
+                    <!-- <th>รายละเอียด</th> -->
                     <th>ชื่อผู้ร้องเรียน</th>
                     <th>วันที่</th>
                     <th>ช่องทางติดต่อ</th>
@@ -123,73 +40,10 @@
             </thead>
             <tbody id="complaints-table">
                 <!-- Data from MongoDB will be populated here -->
+                <tr><td colspan="8" style="text-align: center;">กำลังโหลดข้อมูล...</td></tr>
             </tbody>
         </table>
     </div>
-
-    <script>
-        async function logout() {
-            try {
-                // ลบ Token จาก localStorage
-                localStorage.removeItem("access_token");
-
-                // ส่งคำขอไปยังเซิร์ฟเวอร์เพื่อลบ Cookie (ถ้ามี)
-                const response = await fetch("/logout", {
-                    method: "GET"
-                });
-
-                if (response.ok) {
-                    alert("Logged out successfully");
-                    window.location.href = "/";  // Redirect ไปหน้า Login
-                } else {
-                    const error = await response.json();
-                    alert(`Error: ${error.detail}`);
-                }
-            } catch (error) {
-                console.error("Error during logout:", error);
-                alert("Failed to logout");
-            }
-        }
-        
-        async function fetchAdmitComplaints() {
-            try {
-                const response = await fetch("/admin/get-complaints");
-                const complaints = await response.json();
-
-                const tableBody = document.getElementById("complaints-table");
-                tableBody.innerHTML = ""; // Clear existing rows
-
-                complaints.forEach(complaint => {
-                    // แสดงเฉพาะคำร้องที่มีสถานะเป็น "Admit"
-                    if (complaint.status === "Admit") {
-                        const row = document.createElement("tr");
-
-                        row.innerHTML = `
-                            <td>${complaint.title}</td>
-                            <td>${complaint.details}</td>
-                            <td>${complaint.name}</td>
-                            <td>${complaint.date}</td>
-                            <td>${complaint.contact}</td>
-                            <td>${complaint.team}</td>
-                            <td class="status status-admit">
-                                ${complaint.status}
-                            </td>
-                            <td>
-                                <form action="/admin/admit-complaint/${complaint._id}" method="get">
-                                    <button type="submit" class="btn btn-success">Update</button>
-                                </form>
-                            </td>
-                        `;
-
-                        tableBody.appendChild(row);
-                    }
-                });
-            } catch (error) {
-                console.error("Failed to fetch complaints:", error);
-            }
-        }
-
-        fetchAdmitComplaints();
-    </script>
+    <script type="module" src="/static/js/reports.js" defer></script>
 </body>
 </html>

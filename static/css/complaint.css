@@ -1,0 +1,342 @@
+body {
+    font-family: 'Kanit', sans-serif; /* ใช้ Font Kanit */
+    background-image: url("/static/img/IMG_4022.jpg");
+    background-color: #cccccc;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: cover; /* ปรับให้เต็มจอ */
+    background-attachment: fixed; /* ทำให้พื้นหลังไม่เลื่อนตาม */
+    min-height: 100vh;
+    margin: 0; /* ลบ margin เริ่มต้น */
+    padding: 20px; /* เพิ่ม padding รอบ body */
+    box-sizing: border-box; /* นับ padding เข้าไปในขนาด */
+}
+
+h1 {
+    color: #fff;
+    text-align: center;
+    padding: 15px 20px; /* ปรับ padding */
+    background: linear-gradient(45deg, #006400, #00b894);
+    border-radius: 10px;
+    margin-bottom: 30px;
+    max-width: 600px; /* กำหนดความกว้างสูงสุด */
+    margin-left: auto;
+    margin-right: auto;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    display: block;
+    font-size: 2em; /* ปรับขนาด font */
+}
+
+p {
+    text-align: center;
+    color: #333; /* เปลี่ยนสีให้อ่านง่ายขึ้น */
+    font-size: 1.1em; /* ปรับขนาด font */
+    margin-top: 20px;
+}
+
+/* --- Modal Styles --- */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0, 0, 0, 0.6); /* ทำให้พื้นหลังเข้มขึ้น */
+}
+
+.modal-content {
+    background-color: #fefefe;
+    margin: 10% auto; /* ปรับ margin ให้อยู่กลางๆ */
+    padding: 25px 30px; /* เพิ่ม padding */
+    border: 1px solid #ddd; /* เปลี่ยนสี border */
+    width: 90%; /* กว้างขึ้นเล็กน้อยบนจอเล็ก */
+    max-width: 700px; /* เพิ่ม max-width */
+    border-radius: 8px; /* เพิ่มมุมโค้ง */
+    position: relative;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3); /* เพิ่มเงา */
+}
+
+.modal-content h2 {
+    margin-top: 0;
+    color: #006400; /* สีเขียวเข้ม */
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.close {
+    color: #aaa;
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    font-size: 32px; /* ใหญ่ขึ้น */
+    font-weight: bold;
+    cursor: pointer;
+    line-height: 1;
+}
+
+.close:hover,
+.close:focus {
+    color: #333; /* สีเข้มขึ้น */
+    text-decoration: none;
+}
+
+.terms-scrollbox {
+    max-height: 350px; /* สูงขึ้นเล็กน้อย */
+    overflow-y: auto;
+    border: 1px solid #e0e0e0; /* สี border อ่อนลง */
+    padding: 15px;
+    margin-top: 15px;
+    margin-bottom: 20px; /* เพิ่มระยะห่าง */
+    background-color: #f9f9f9;
+    border-radius: 4px;
+    font-size: 0.9em; /* ลดขนาด font เล็กน้อย */
+    line-height: 1.6; /* เพิ่มระยะห่างบรรทัด */
+}
+.terms-scrollbox p {
+    text-align: left; /* จัดชิดซ้าย */
+    margin-bottom: 1em; /* ระยะห่างระหว่าง paragraph */
+    color: #555; /* สีเทาเข้ม */
+}
+.terms-scrollbox strong {
+    color: #333; /* สีดำสำหรับหัวข้อ */
+}
+.terms-scrollbox a {
+    color: #007BFF;
+    text-decoration: none;
+}
+.terms-scrollbox a:hover {
+    text-decoration: underline;
+}
+
+
+#termsCheckbox {
+    display: flex;
+    align-items: center;
+    text-align: left;
+    gap: 10px; /* เพิ่ม gap */
+    margin-bottom: 20px; /* เพิ่มระยะห่าง */
+}
+
+#termsAgree {
+    width: 18px; /* ใหญ่ขึ้น */
+    height: 18px;
+    margin: 0;
+    cursor: pointer;
+}
+#termsCheckbox span {
+     font-size: 0.95em;
+     color: #333;
+     cursor: pointer;
+}
+
+.modal-buttons { /* สร้าง container สำหรับปุ่ม */
+    display: flex;
+    justify-content: center; /* จัดปุ่มไปตรงกลาง */
+    gap: 15px; /* ระยะห่างระหว่างปุ่ม */
+    margin-top: 20px;
+}
+
+#agreeBtn, #cancelBtn {
+    padding: 10px 25px; /* ปรับ padding */
+    border: none;
+    border-radius: 5px; /* เพิ่มมุมโค้ง */
+    cursor: pointer;
+    font-size: 1em;
+    font-weight: 500;
+    transition: background-color 0.3s ease, opacity 0.3s ease;
+}
+
+#agreeBtn {
+    background-color: #28a745; /* สีเขียว */
+    color: white;
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+#agreeBtn.enabled {
+    opacity: 1;
+    pointer-events: auto;
+}
+#agreeBtn.enabled:hover {
+    background-color: #218838; /* สีเขียวเข้มขึ้น */
+}
+
+#cancelBtn {
+    background-color: #dc3545; /* สีแดง */
+    color: white;
+}
+#cancelBtn:hover {
+    background-color: #c82333; /* สีแดงเข้มขึ้น */
+}
+
+/* --- Form Styles --- */
+.container {
+    max-width: 650px;
+    margin: 30px auto;
+    padding: 35px; /* เพิ่ม padding เล็กน้อย */
+    /* ใช้ RGBA เพื่อให้โปร่งแสง */
+    background-color: rgba(255, 255, 255, 0.75); 
+    border-radius: 12px;
+    /* เพิ่ม backdrop-filter เพื่อเบลอพื้นหลัง*/
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px); /* สำหรับ Safari */
+    /* เพิ่มเส้นขอบบางๆ สีเทาอ่อน */
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    /* ปรับเงาให้นุ่มนวลขึ้น */
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2); /* เงาที่ดูมีมิติขึ้น */
+}
+
+#complaint-form label {
+    display: block;
+    margin-bottom: 8px; /* เพิ่มระยะห่าง */
+    font-weight: 500; /* ปรับ font weight */
+    color: #444; /* สีเข้มขึ้น */
+}
+/* ใส่ * สีแดงสำหรับ required fields */
+#complaint-form label:has(+ input[required])::after,
+#complaint-form label:has(+ textarea[required])::after,
+#complaint-form label:has(+ select[required])::after {
+    content: ' *';
+    color: red;
+    font-weight: bold;
+    margin-left: 2px;
+}
+
+
+#complaint-form input[type="text"],
+#complaint-form input[type="date"],
+#complaint-form input[type="email"], /* เพิ่ม email type */
+#complaint-form select,
+#complaint-form textarea {
+    width: 100%;
+    padding: 10px 12px; /* ปรับ padding */
+    margin-bottom: 18px; /* เพิ่มระยะห่าง */
+    border: 1px solid #ccc; /* สี border อ่อนลง */
+    border-radius: 4px;
+    box-sizing: border-box;
+    font-size: 1em;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+#complaint-form input:focus,
+#complaint-form select:focus,
+#complaint-form textarea:focus {
+    outline: none;
+    border-color: #007BFF;
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25); /* เพิ่ม focus effect */
+}
+
+#complaint-form input[disabled] {
+    background-color: #e9ecef; /* สีเทาสำหรับ disabled */
+    cursor: not-allowed;
+}
+
+#complaint-form textarea {
+    resize: vertical;
+    min-height: 100px;
+}
+
+#complaint-form button[type="submit"] {
+    background-color: #007BFF; /* สีน้ำเงิน */
+    color: white;
+    padding: 12px 25px; /* ปรับ padding */
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1.05em; /* ใหญ่ขึ้นเล็กน้อย */
+    font-weight: 500;
+    transition: background-color 0.3s ease;
+    display: block; /* ทำให้เป็น block */
+    width: auto; /* ปรับความกว้างอัตโนมัติ */
+    margin: 20px auto 0 auto; /* จัดกลางและเพิ่ม margin ด้านบน */
+}
+
+#complaint-form button[type="submit"]:hover {
+    background-color: #0056b3; /* สีน้ำเงินเข้มขึ้น */
+}
+
+/* --- Visibility Classes --- */
+.hidden {
+    display: none; /* ใช้ display: none แทน visibility */
+}
+
+.visible {
+    display: block; /* หรือ inline-block ตามความเหมาะสม */
+}
+
+/* --- Contact Input Group --- */
+.contact-group {
+    border: 1px solid #ddd;
+    padding: 15px;
+    border-radius: 4px;
+    margin-bottom: 18px;
+    background-color: #fdfdfd;
+}
+.contact-group label {
+    margin-bottom: 5px; /* ลดระยะห่าง label ใน group */
+}
+.contact-group input {
+    margin-bottom: 10px; /* ลดระยะห่าง input ใน group */
+}
+.contact-group label:last-of-type {
+     margin-bottom: 0; /* ลบ margin ล่างของ label สุดท้าย */
+}
+.contact-group input:last-of-type {
+     margin-bottom: 0; /* ลบ margin ล่างของ input สุดท้าย */
+}
+
+.label-with-tooltip {
+    display: inline-flex; /* ใช้ flex เพื่อจัดเรียง label และ icon */
+    align-items: center; /* จัดให้อยู่กึ่งกลางแนวตั้ง */
+    position: relative; /* ทำให้ tooltip อ้างอิงตำแหน่งจาก label นี้ได้ */
+    cursor: default; /* เปลี่ยน cursor เป็น default */
+}
+
+.tooltip-icon {
+    margin-left: 8px; /* ระยะห่างระหว่าง label กับ icon */
+    color: #007BFF; /* สีไอคอน */
+    cursor: help; /* เปลี่ยน cursor เป็นเครื่องหมายคำถาม */
+    font-size: 1.1em; /* ขนาดไอคอน */
+}
+
+.tooltip-text {
+    visibility: hidden; /* ซ่อน tooltip เริ่มต้น */
+    width: 250px; /* ความกว้าง tooltip */
+    background-color: #555; /* สีพื้นหลัง tooltip */
+    color: #fff; /* สีข้อความ */
+    text-align: center;
+    border-radius: 6px;
+    padding: 8px 10px; /* ระยะห่างภายใน */
+    position: absolute;
+    z-index: 1;
+    bottom: 125%; /* ตำแหน่ง tooltip (เหนือ icon) */
+    left: 50%;
+    margin-left: -125px; /* เลื่อนไปทางซ้ายครึ่งหนึ่งของความกว้าง */
+    opacity: 0;
+    transition: opacity 0.3s;
+    font-size: 0.85em; /* ขนาด font ใน tooltip */
+    font-weight: normal; /* น้ำหนัก font ปกติ */
+    line-height: 1.4; /* ระยะห่างบรรทัด */
+    pointer-events: none; /* ไม่ให้ tooltip บังการคลิก */
+}
+
+/* Arrow for tooltip */
+.tooltip-text::after {
+    content: "";
+    position: absolute;
+    top: 100%; /* ชี้ลง */
+    left: 50%;
+    margin-left: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: #555 transparent transparent transparent;
+}
+
+/* แสดง tooltip เมื่อ hover ที่ icon */
+.tooltip-icon:hover + .tooltip-text {
+    visibility: visible;
+    opacity: 1;
+}

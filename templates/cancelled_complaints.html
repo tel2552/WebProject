@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>คำร้องที่ยกเลิก</title>
+    <link rel="icon" href="/static/favicon.ico" type="image/x-icon">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="stylesheet" href="/static/css/cancelled_complaints.css">
+</head>
+<body>
+    <!-- Navbar -->
+    {% include 'navbar.html' %}
+
+    <!-- Content -->
+    <div class="content">
+        <div style="text-align: center;">
+            <h1>คำร้องที่ยกเลิก</h1>
+        </div>
+
+        <!-- Warning Message -->
+        <div class="warning-message">
+            <p><strong>คำเตือน:</strong> คำร้องที่ยกเลิกจะถูกลบออกจากระบบภายใน 30 วัน</p>
+        </div>
+        <div class="search-container">
+            <label for="searchInput">คำค้นหา:</label>
+            <input type="text" id="searchInput" placeholder="ค้นหา...">
+            <!-- remove filter status -->
+        </div>
+        <label for="sort-options">เรียงลำดับ:</label>
+        <select id="sort-options" onchange="sortTable()">
+            <option value="newest">วันที่ใหม่ → เก่า</option>
+            <option value="oldest">วันที่เก่า → ใหม่</option>
+        </select>
+        <table>
+            <thead>
+                <tr>
+                    <th>หัวข้อเรื่อง</th>
+                    <th>รายละเอียด</th>
+                    <th>ชื่อผู้ร้องเรียน</th>
+                    <th>วันที่</th>
+                    <th>ช่องทางติดต่อ</th>
+                    <th>ทีมที่เกี่ยวข้อง</th>
+                    <th>หมายเหตุการยกเลิก</th>
+                    <th>วันที่จะถูกลบ</th>
+                    <th>สถานะ</th>
+                    <th>ดำเนินการ</th>
+                </tr>
+            </thead>
+            <tbody id="cancelled-complaints-table">
+                <!-- Cancelled complaints data will be loaded here -->
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        async function fetchCancelledComplaints() {
+            try {
+                const response = await fetch("/admin/get-complaints", {
+                    method: "GET",
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+                    }
+                });
+                const complaints = await response.json();
+                 // fetch user role and team
+                const userRole = await getUserRole();
+                const userTeam = await getUserTeam();
+                const tableBody = document.getElementById("cancelled-complaints-table");
+                tableBody.innerHTML = ""; // Clear existing rows
+                // Add data in table
+                complaints.forEach(complaint => {
+                    // Check if complaint is Cancelled and Filter Team.
+                    if (complaint.status === "Cancelled") {
+                        if (userRole === "admin" && complaint.team !== userTeam) {
+                             return; // Skip to the next complaint
+                        }
+                            const row = document.createElement("tr");
+                            const undoButton = `
+                                <button class="btn-undo" onclick="undoCancellation(${complaint.id})">กู้คืน</button>
+                            `;
+                            const now = new Date();
+                            const deletionDate = new Date(complaint.deletion_scheduled);
+                            let daysUntilDeletion = Math.ceil((deletionDate - now) / (1000 * 60 * 60 * 24));
+                            if (isNaN(daysUntilDeletion) || daysUntilDeletion < 0) {
+                                daysUntilDeletion = "0";
+                            }
+                            row.innerHTML = `
+                                <td>${complaint.title}</td>
+                                <td>${complaint.details}</td>
+                                <td>${complaint.name}</td>
+                                <td>${complaint.date}</td>
+                                <td>${complaint.contact}</td>
+                                <td>${complaint.team}</td>
+                                <td>${complaint.cancellation_reason || ''}</td>
+                                <td>${daysUntilDeletion}</td>
+                                <td class="status status-cancelled">${complaint.status}</td>
+                                <td>${undoButton}</td>
+                            `;
+                            tableBody.appendChild(row);
+                    }
+                });
+                // Sort the table after loading data
+                sortTable();
+                
+            } catch (error) {
+                console.error("Failed to fetch cancelled complaints:", error);
+            }
+        }
+
+
+        async function undoCancellation(complaintId) {
+            try {
+                const response = await fetch(`/admin/undo-cancellation/${complaintId}`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/x-www-form-urlencoded",
+                    },
+                    body: ``,
+                });
+
+                if (response.ok) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'กู้คืนคำร้องสำเร็จ',
+                        showConfirmButton: false,
+                        timer: 1500
+                    }).then(()=>{
+                         fetchCancelledComplaints(); // Refresh the list
+                    })
+                
+                } else {
+                    const error = await response.json();
+                    Swal.fire({
+                        icon: 'error',
+                        title: `เกิดข้อผิดพลาด: ${error.detail}`,
+                        showConfirmButton: true,
+                    })
+                    console.error("Failed to undo cancellation:", error);
+                }
+            } catch (error) {
+                Swal.fire({
+                    icon: 'error',
+                    title: `Failed to undo cancellation`,
+                    showConfirmButton: true,
+                })
+                console.error("Error during undo cancellation:", error);
+            }
+        }
+
+        async function getUserRole() {
+            try {
+                const token = localStorage.getItem('access_token');
+                if (!token) {
+                    console.error('No access token found.');
+                    return null;
+                }
+
+                const response = await fetch('/admin/get-userrole', {  // Make sure this endpoint exists and returns the user's role
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    return data.role; // Assuming the server returns { "role": "superadmin" }
+                } else {
+                    console.error('Failed to fetch user role:', response.statusText);
+                    return null;
+                }
+            } catch (error) {
+                console.error('Error fetching user role:', error);
+                return null;
+            }
+        }
+
+        async function getUserTeam() {
+            try {
+                const token = localStorage.getItem('access_token');
+                if (!token) {
+                    console.error('No access token found.');
+                    return null;
+                }
+
+                const response = await fetch('/admin/get-userteam', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    return data.team;
+                } else {
+                    console.error('Failed to fetch user team:', response.statusText);
+                    return null;
+                }
+            } catch (error) {
+                console.error('Error fetching user team:', error);
+                return null;
+            }
+        }
+        async function sortTable() {
+            const table = document.getElementById("cancelled-complaints-table");
+            const rows = Array.from(table.rows);
+            const sortOrder = document.getElementById("sort-options").value;
+
+            rows.sort((a, b) => {
+                const dateA = new Date(a.cells[3].textContent); // คอลัมน์วันที่
+                const dateB = new Date(b.cells[3].textContent);
+
+                return sortOrder === "newest" ? dateB - dateA : dateA - dateB;
+            });
+
+            table.innerHTML = ""; // ล้างตารางก่อนแสดงผลใหม่
+            rows.forEach(row => table.appendChild(row));
+        }
+        function filterComplaints() {
+            const filterText = searchInput.value.toLowerCase();
+            const rows = document.getElementById('cancelled-complaints-table').getElementsByTagName('tr');
+
+            for (let i = 0; i < rows.length; i++) {
+                const cells = rows[i].getElementsByTagName('td');
+                const title = cells[0].textContent.toLowerCase();
+                const details = cells[1].textContent.toLowerCase();
+                const name = cells[2].textContent.toLowerCase();
+                const textMatch = title.includes(filterText) || details.includes(filterText) || name.includes(filterText);
+                rows[i].style.display = textMatch ? '' : 'none';
+            }
+        }
+
+        // Event listeners
+        const searchInput = document.getElementById('searchInput');
+        const searchButton = document.getElementById('searchButton');
+        searchInput.addEventListener("input",filterComplaints);
+
+        fetchCancelledComplaints();
+    </script>
+    <!-- <script src="/static/js/navbar.js"></script> -->
+</body>
+</html>

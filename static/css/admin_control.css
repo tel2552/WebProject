@@ -1,0 +1,151 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    display: block;
+    background-image: url("/static/img/IMG_4022.jpg");
+    background-color: #cccccc;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: cover; /* ปรับให้เต็มจอ */
+    min-height: 100vh; /* บังคับให้เต็มจอเสมอ */
+}
+
+.content {
+    margin-left: 0; /* เริ่มต้นที่ 0 */
+    flex-grow: 1;
+    padding: 20px;
+    transition: margin-left 0.3s; /* ทำให้ขยับนุ่มนวล */
+}
+
+h1 {
+    font-size: 2.5em; /* ขนาดตัวอักษร */
+    font-weight: bold;
+    color: white;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    padding: 10px 20px; /* ปรับขนาด padding ให้พอดี */
+    background: linear-gradient(45deg, #006400, #00b894); /* สีพื้นหลังไล่เฉด */
+    border-radius: 10px;
+    text-shadow: 3px 3px 5px rgba(0, 0, 0, 0.3);
+    
+    display: inline-block; /* ทำให้พื้นหลังพอดีกับตัวอักษร */
+    text-align: center; /* จัดข้อความให้อยู่ตรงกลาง (แต่ inline-block ใช้ margin auto ด้วย) */
+    margin: 20px auto; /* ทำให้ h1 อยู่ตรงกลางแนวนอน */
+    width: auto; /* ป้องกันไม่ให้ขยายเกินตัวอักษร */
+}
+
+h2 {
+    color: #333;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 5px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+}
+
+th, td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+}
+
+th {
+    background-color: #f0f0f0;
+}
+
+.btn {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    cursor: pointer;
+    border-radius: 3px;
+    margin-right: 5px;
+}
+
+.btn-danger {
+    background-color: #dc3545;
+}
+
+.btn-edit {
+    background-color: #ffc107;
+    color: black;
+}
+
+.btn:hover {
+    opacity: 0.8;
+}
+
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0, 0, 0, 0.4);
+}
+
+.modal-content {
+    background-color: #fefefe;
+    margin: 15% auto;
+    padding: 20px;
+    border: 1px solid #888;
+    width: 80%;
+    max-width: 600px;
+    border-radius: 5px;
+}
+
+.close {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+}
+
+.close:hover,
+.close:focus {
+    color: black;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+}
+
+.form-group input,
+.form-group select {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+}
+
+.error-message {
+    color: red;
+    margin-top: 5px;
+}
+
+.success-message {
+    color: green;
+    margin-top: 5px;
+}

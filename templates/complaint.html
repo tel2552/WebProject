@@ -1,130 +1,164 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="th"> <!-- เปลี่ยน lang เป็น th -->
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ระบบรับข้อร้องเรียน</title>
+    <link rel="icon" href="/static/favicon.ico" type="image/x-icon">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script>
-        document.addEventListener("DOMContentLoaded", function() { // Ensure DOM is loaded
-            document.getElementById("complaint-form").addEventListener("submit", async (e) => {
-                e.preventDefault();
-
-                // Collect all form data
-                const form = e.target;
-                const formData = new FormData(form);
-
-                const response = await fetch("/submit-complaint", {
-                    method: "POST",
-                    body: formData
-                });
-
-                if (response.ok) {
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'ส่งเรื่องร้องเรียนเรียบร้อยแล้ว!',
-                        text: 'เราได้รับเรื่องร้องเรียนของคุณแล้ว',
-                        confirmButtonText: 'ตกลง',
-                        timer: 3000, // Automatically close after 3 seconds
-                        timerProgressBar: true,
-                    }).then(() => {
-                        form.reset(); //reset form
-                    });
-                } else {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'เกิดข้อผิดพลาด!',
-                        text: 'เกิดข้อผิดพลาดในการส่งเรื่องร้องเรียน กรุณาลองใหม่อีกครั้ง',
-                        confirmButtonText: 'ตกลง',
-                    });
-                }
-            });
-        });
-
-        async function logout() {
-            try {
-                // ลบ Token จาก localStorage
-                localStorage.removeItem("access_token");
-
-                // ส่งคำขอไปยังเซิร์ฟเวอร์เพื่อลบ Cookie (ถ้ามี)
-                const response = await fetch("/logout", {
-                    method: "GET"
-                });
-
-                if (response.ok) {
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Logged out successfully',
-                        confirmButtonText: 'ตกลง',
-                        timer: 3000,
-                        timerProgressBar: true,
-                    }).then(() => {
-                        window.location.href = "/";
-                    });  // Redirect ไปหน้า Login
-                } else {
-                    const error = await response.json();
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'เกิดข้อผิดพลาด!',
-                        text: `Error: ${error.detail}`,
-                        confirmButtonText: 'ตกลง',
-                    });
-                }
-            } catch (error) {
-                console.error("Error during logout:", error);
-                Swal.fire({
-                        icon: 'error',
-                        title: 'เกิดข้อผิดพลาด!',
-                        text: "Failed to logout",
-                        confirmButtonText: 'ตกลง',
-                    });
-            }
-        }
-    </script>
-    <link rel="stylesheet" href="/static/style.css">
+    <!-- <link rel="stylesheet" href="/static/css/style.css"> -->
+    <link rel="stylesheet" href="/static/css/complaint.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <!--Font Kanit -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600&display=swap" rel="stylesheet">
 </head>
+
 <body>
+    <!-- The Modal -->
+    <div id="termsModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>ข้อกำหนดและเงื่อนไขการใช้งาน</h2>
+            <p>กรุณาอ่านและยอมรับข้อกำหนดก่อนดำเนินการต่อ</p>
+
+            <div class="terms-scrollbox">
+                <p><strong>เอกสารแจ้งการประมวลผลข้อมูลส่วนบุคคล (Privacy Notice)</strong></p>
+
+                <p>เนื่องจาก สถาบันการจัดการปัญญาภิวัฒน์ (“สถาบัน”) ได้ตระหนักถึงความสำคัญของข้อมูลส่วนบุคคลของท่าน ที่ได้มอบให้แก่สถาบันด้วยความไว้วางใจ และสถาบันมีความจำเป็นต้องปฏิบัติตามพระราชบัญญัติคุ้มครองข้อมูลส่วนบุคคล พ.ศ. 2562 เพื่อเป็นการรับรองสิทธิของบุคคลที่จะต้องได้รับความคุ้มครองเกี่ยวกับการเก็บรวบรวม ใช้ เปิดเผย (“ประมวลผล”) ข้อมูลส่วนบุคคล โดยเอกสารฉบับนี้มีวัตถุประสงค์เพื่อแจ้งวิธีการเก็บรวบรวม ใช้ และเปิดเผยข้อมูลส่วนบุคคลของท่าน</p>
+
+                <p>สถาบันขอให้ท่านโปรดอ่านเอกสารฉบับนี้เพื่อรับทราบและทำความเข้าใจในวัตถุประสงค์ที่บริษัทได้เก็บรวบรวม ใช้ และเปิดเผยข้อมูลส่วนบุคคลของท่าน</p>
+
+                <p><strong>1. วัตถุประสงค์และฐานในการประมวลผลข้อมูล</strong></p>
+
+                <p><strong>วัตถุประสงค์ในการประมวลผลข้อมูล:</strong> สถาบันจัดเก็บข้อมูลส่วนบุคคลของท่านเพื่อใช้ประกอบข้อมูลในการดำเนินการจัดการข้อร้องเรียนของสถาบัน</p>
+
+                <p><strong>ฐานในการประมวลผลข้อมูล:</strong> สถาบันดำเนินการประมวลผลข้อมูลส่วนบุคคลของท่านภายใต้ฐาน ดังต่อไปนี้:</p>
+
+                <p>❒ <strong>ฐานความยินยอม (Consent):</strong> สถาบันอาจนำข้อมูลส่วนบุคคลของท่านไปใช้ในการประมวลผล การสรุปผลการดำเนินการจัดการข้อร้องเรียนของสถาบัน ทั้งนี้ หากท่านประสงค์จะถอนความยินยอม ท่านสามารถติดต่อสถาบันและแจ้งความประสงค์ได้ตามข้อ 4.</p>
+
+                <p>❒ <strong>ฐานจำเป็นเพื่อประโยชน์โดยชอบด้วยกฎหมาย (Legitimate Interest):</strong> สถาบันอาจนำข้อมูลส่วนบุคคลของท่านไปใช้ในการประมวลผล การสรุปผลการดำเนินการจัดการข้อร้องเรียนของสถาบันฯ อันเป็นกรณีฐานจำเป็นเพื่อประโยชน์โดยชอบด้วยกฎหมายตามมาตรา 24 (5) ของพระราชบัญญัติคุ้มครองข้อมูลส่วนบุคคล พ.ศ. 2562</p>
+
+                <p><strong>2. ข้อมูลส่วนบุคคลที่จะทำการประมวลผลและระยะเวลาในการเก็บรวบรวม</strong></p>
+
+                <p><strong>ประเภท/รายการข้อมูลส่วนบุคคล:</strong> ชื่อ-นามสกุล, ที่อยู่, สถานที่ติดต่อ, เบอร์โทร, email</p>
+
+                <p><strong>ระยะเวลาในการเก็บรวบรวม:</strong> 10 ปี นับจากวันที่สิ้นสุดโครงการ ทั้งนี้ เมื่อพ้นกำหนดระยะเวลาข้างต้น สถาบันจะทำการลบหรือทำให้ข้อมูลส่วนบุคคลไม่สามารถระบุตัวบุคคลได้</p>
+
+                <p><strong>3. การเปิดเผยข้อมูลส่วนบุคคลให้แก่บุคคลภายนอก</strong></p>
+
+                <p>สถาบันอาจทำการเปิดเผยข้อมูลส่วนบุคคลให้แก่บุคคลภายนอกเท่าที่จำเป็น เพื่อให้เป็นไปตามวัตถุประสงค์หลักหรือวัตถุประสงค์ที่เกี่ยวข้องกับการประมวลผลข้อมูลส่วนบุคคล โดยสถาบันอาจส่งข้อมูลของท่านไปยัง:</p>
+
+                <p>- หน่วยงานกำกับ<br>
+                - หน่วยงานของรัฐบาล<br>
+                - หน่วยงานที่มีหน้าที่ดูแล เช่น: สำนักงานคณะกรรมการกำกับหลักทรัพย์และตลาดหลักทรัพย์, สำนักงานตรวจเงินแผ่นดิน, สำนักงานป้องกันและปราบปรามการฟอกเงิน, สำนักงานคณะกรรมการคุ้มครองผู้บริโภค, สำนักงานตำรวจแห่งชาติ, กระทรวงยุติธรรม, บุคคลใด ๆ ที่สถาบันต้องเปิดเผยเท่าที่กฎหมายหรือระเบียบที่เกี่ยวข้องกำหนด หรือเป็นไปตามคำสั่งศาล หรือกรณีได้รับความยินยอมจากท่านเรียบร้อยแล้ว</p>
+
+                <p><strong>4. สิทธิของเจ้าของข้อมูล</strong></p>
+
+                <p>ท่านมีสิทธิ:</p>
+                <p>
+                1. สิทธิในการเพิกถอนความยินยอมให้สถาบันประมวลผลข้อมูลส่วนบุคคลของท่าน<br>
+                2. สิทธิในการเข้าถึงและรับสำเนาข้อมูลส่วนบุคคลที่สถาบันได้เก็บรวบรวม ใช้ เปิดเผย<br>
+                3. สิทธิในการขอให้โอนย้ายข้อมูลส่วนบุคคลของท่าน<br>
+                4. สิทธิในการคัดค้านการประมวลผลข้อมูลส่วนบุคคลของท่าน<br>
+                5. สิทธิในการขอให้ลบ ทำลาย หรือทำให้ข้อมูลส่วนบุคคลของท่านซึ่งไม่อาจระบุตัวตนได้<br>
+                6. สิทธิในการระงับการใช้ข้อมูลส่วนบุคคลของท่าน<br>
+                7. สิทธิในการขอแก้ไขข้อมูลส่วนบุคคลของท่านให้ถูกต้อง เป็นปัจจุบัน สมบูรณ์ และไม่ก่อให้เกิดความเข้าใจผิด<br>
+                8. สิทธิที่จะร้องเรียนในกรณีที่ท่านเห็นว่าถูกสถาบันหรือเจ้าหน้าที่หรือตัวแทนของสถาบันละเมิดสิทธิตามพระราชบัญญัติคุ้มครองข้อมูลส่วนบุคคล พ.ศ. 2562
+                </p>
+
+                <p><em>การร้องขอใด ๆ เพื่อการใช้สิทธิของท่าน ต้องกระทำเป็นลายลักษณ์อักษร และบริษัทจะใช้ความพยายามอย่างดีที่สุดที่จะดำเนินการภายในระยะเวลาที่สมเหตุสมผล และไม่เกินระยะเวลาที่กฎหมายกำหนด</em></p>
+
+                <p><em>ข้อจำกัด: หากท่านขอให้สถาบันลบหรือทำลายข้อมูล ระงับ หรือทำให้ข้อมูลไม่สามารถระบุตัวตนได้ หรือถอนความยินยอม อาจทำให้เกิดข้อจำกัดกับสถาบันในการทำธุรกรรมกับท่านได้</em></p>
+
+                <p><em>สถาบันขอสงวนสิทธิ์ในการคิดค่าบริการที่เกี่ยวข้องและจำเป็นต่อการดำเนินการเกี่ยวกับข้อมูลส่วนบุคคลตามคำร้องขอ</em></p>
+
+                <p><strong>5. การเปลี่ยนแปลงเอกสารแจ้งการประมวลผลข้อมูลส่วนบุคคล (Privacy Notice)</strong></p>
+
+                <p>เพื่อให้เป็นไปตามพระราชบัญญัติคุ้มครองข้อมูลส่วนบุคคล พ.ศ. 2562 เอกสารฉบับนี้อาจมีการแก้ไขเปลี่ยนแปลง โดยสถาบันจะแสดงฉบับปัจจุบันไว้บนเว็บไซต์ของสถาบัน หรือแจ้งเป็นลายลักษณ์อักษร</p>
+
+                <p><strong>6. รายละเอียดเจ้าหน้าที่คุ้มครองข้อมูลส่วนบุคคล</strong></p>
+
+                <p>หากมีเหตุร้องเรียนเกี่ยวกับข้อมูลส่วนบุคคล สามารถติดต่อได้ที่:</p>
+
+                <p><strong>เจ้าหน้าที่คุ้มครองข้อมูลส่วนบุคคล</strong><br>
+                เลขที่ 313 อาคาร ซี.พี. ทาวเวอร์ ชั้น 24 ถนนสีลม แขวงสีลม เขตบางรัก กรุงเทพมหานคร 10500<br>
+                Email: <a href="mailto:privacy@cpall.co.th">privacy@cpall.co.th</a></p>
+
+                <p><strong>ผู้ควบคุมข้อมูลส่วนบุคคล</strong><br>
+                สถาบันการจัดการปัญญาภิวัฒน์<br>
+                เลขที่ 85/1 หมู่ 2 ถนนแจ้งวัฒนะ ตำบลบางตลาด อำเภอปากเกร็ด จังหวัดนนทบุรี 11120<br>
+                Email: <a href="mailto:Privacy@pim.ac.th">Privacy@pim.ac.th</a><br>
+                โทรศัพท์: 02 855 0000</p>
+            </div>
+
+            <label id="termsCheckbox">
+                <input type="checkbox" id="termsAgree">
+                <span>ข้าพเจ้าได้อ่านและยอมรับข้อกำหนดและเงื่อนไขทั้งหมด</span>
+            </label>
+            <div class="modal-buttons"> <!-- ใช้ container สำหรับปุ่ม -->
+                <button id="agreeBtn" disabled>ตกลง</button>
+                <button id="cancelBtn">ยกเลิก</button>
+            </div>
+        </div>
+    </div>
+
+    <h1>แบบฟอร์มข้อร้องเรียน</h1>
     <div class="container">
-        <h1>แบบฟอร์มข้อร้องเรียน</h1>
-        <p>บันทึกการจัดการข้อร้องเรียน</p>
+        <!-- <h1>แบบฟอร์มข้อร้องเรียน</h1> -->
+        <!-- <p>บันทึกการจัดการข้อร้องเรียน</p> -->
         <form id="complaint-form">
             <label for="title">หัวข้อคำร้อง:</label>
-            <input type="text" id="title" name="title" required><br>
+            <input type="text" id="title" name="title" required>
 
-            <label for="name">*ชื่อลูกค้าผู้ร้องเรียน:</label>
-            <input type="text" id="name" name="name" required><br><br>
+            <label for="name">ชื่อลูกค้าผู้ร้องเรียน:</label>
+            <input type="text" id="name" name="name" required>
 
-            <label for="date">*วันที่พบปัญหา:</label>
-            <input type="date" id="date" name="date" required><br><br>
-            
-            <label for="contact">*ช่องทางติดต่อกลับ:
-            </label><label for="contact">โทรศัพท์:</label>
-            <input type="text" id="phonecontact" name="contact" required>
-            <label for="contact">อีเมล:</label>
-            <input type="text" id="mailcontact" name="contact" required><br><br>
-            
-            
-            <label>ประเภทข้อร้องเรียน:</label>
-            <select name="team" required>
+            <label for="date">วันที่พบปัญหา:</label>
+            <input type="date" id="date" name="date" required>
+
+            <!-- จัดกลุ่มช่องทางติดต่อ -->
+            <div class="contact-group">
+                <label>ช่องทางติดต่อกลับ:</label>
+                <label for="phonecontact">โทรศัพท์:</label>
+                <input type="text" id="phonecontact" name="phonecontact" placeholder="เช่น 0812345678">
+                <label for="mailcontact">อีเมล:</label>
+                <input type="email" id="mailcontact" name="mailcontact" placeholder="เช่น example@email.com">
+                <!-- ซ่อน input 'contact' เดิม ถ้า backend รับแยก -->
+                <input type="hidden" name="contact" id="combined_contact">
+            </div>
+
+            <label for="team-select" class="label-with-tooltip">
+                ประเภทข้อร้องเรียน:
+                <span class="tooltip-icon"><i class="fas fa-question-circle"></i></span> <!-- ไอคอน ? -->
+                <span class="tooltip-text" id="team-tooltip">คำอธิบายจะแสดงที่นี่</span> <!-- กล่อง tooltip -->
+            </label>
+            <select name="team" id="team-select" required>
+                <option value="" disabled selected>--- กรุณาเลือกประเภท ---</option>
                 <option value="ด้านบุคลากร">ด้านบุคลากร</option>
                 <option value="การบริการงานวิจัย">การบริการงานวิจัย</option>
                 <option value="การบริการวิชาการ">การบริการวิชาการ</option>
                 <option value="การบริหารจัดการของ PIM">การบริหารจัดการของ PIM</option>
                 <option value="การบริการแก่นักศึกษา">การบริการแก่นักศึกษา</option>
                 <option value="อื่นๆ">อื่นๆ</option>
-            </select><br>
-            
-            <label>กรณีเลือก "อื่นๆ" โปรดระบุ:</label>
-            <input type="text" name="otherType"><br>
-        
-            <label for="details">*รายละเอียดข้อร้องเรียน:</label><br>
-            <textarea id="details" name="details" rows="4" cols="50" required></textarea><br><br>
-        
+            </select>
+
+            <label for="otherType">กรณีเลือก "อื่นๆ" โปรดระบุ:</label>
+            <input type="text" id="otherType" name="otherType" disabled>
+
+            <!-- ใช้ class visible/hidden แทน style -->
+            <label for="details">รายละเอียดข้อร้องเรียน:</label>
+            <textarea id="details" name="details" rows="5"></textarea>
+            <!-- <label for="details" class="hidden">รายละเอียดข้อร้องเรียน:</label>
+            <textarea id="details" name="details" rows="5" class="hidden"></textarea> -->
+
             <button type="submit">ส่งข้อร้องเรียน</button>
-            <!-- ปุ่ม Logout -->
-            <button onclick="logout()">Logout</button>
-            
+
         </form>
+        <!-- <p>เข้าสู่ระบบสำหรับผู้ดูแล? <a href="/login">คลิกที่นี่</a></p> -->
     </div>
+    <p>เข้าสู่ระบบสำหรับAdmin? <a href="/login">คลิกที่นี่</a></p>
+    <script type="module" src="/static/js/complaint.js" defer></script>
 </body>
 </html>

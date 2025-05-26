@@ -1,0 +1,174 @@
+<!-- c:\Users\uSeR\OneDrive\เดสก์ท็อป\codeงาน\WebProject\templates\pdf_complaint_template.html -->
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <title>รายงานข้อร้องเรียน - {{ title }}</title>
+    <style>
+        @font-face {
+            font-family: 'THSarabunNew'; /* หรือชื่อ font อื่นๆ ที่คุณใช้และติดตั้งไว้ */
+            /* src: url('/path/to/THSarabunNew.ttf'); */ /*ถ้า font error */
+        }
+        body {
+            font-family: 'THSarabunNew', 'Kanit', sans-serif; /* ใส่ font ที่รองรับภาษาไทย */
+            font-size: 12pt;
+            line-height: 1.6;
+            color: #333;
+        }
+        h1, h2, h3 {
+            color: #000;
+        }
+        .container {
+            width: 90%;
+            margin: 0 auto;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        }
+        .section {
+            margin-bottom: 1.5em;
+            padding: 0.8em;
+            border: 1px solid #ddd; /* Lighten border */
+            border-radius: 4px;
+            background-color: #fdfdfd; /* Slightly off-white background */
+        }
+        .section h2 {
+            margin-top: 0;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 5px;
+            font-size: 1.2em;
+        }
+        .section h3 {
+            font-size: 1.0em;
+            color: #555;
+            margin-top: 1em;
+            margin-bottom: 0.5em;
+        }
+        .label {
+            font-weight: bold;
+            display: inline-block;
+            min-width: 180px; /* Adjust as needed */
+        }
+        p {
+            margin: 0.5em 0;
+            word-wrap: break-word; /* Ensure long text wraps */
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 1em;
+        }
+        th, td {
+            border: 1px solid #ccc;
+            padding: 8px; /* Increased padding */
+            text-align: left;
+            word-wrap: break-word;
+        }
+        th {
+            background-color: #e9e9e9; /* Lighter header */
+            font-weight: bold;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            font-size: 0.8em;
+            color: #777;
+        }
+        .no-data {
+            color: #777;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>รายงานข้อร้องเรียน</h1>
+            <p><strong>รหัสคำร้อง:</strong> {{ complaint_id_display }}</p>
+        </div>
+
+        <div class="section">
+            <h2>ข้อมูลทั่วไป</h2>
+            <p><span class="label">ผู้วิเคราะห์/ดำเนินการ:</span> {{ admin_name if admin_name != 'N/A' else complaint.admin_name_filled_by | default('N/A') }}</p>
+            <p><span class="label">ชื่อผู้ร้องเรียน:</span> {{ complainant_name }}</p>
+            <p><span class="label">หัวข้อเรื่อง:</span> {{ title }}</p>
+            <p><span class="label">รายละเอียด:</span> {{ details }}</p>
+            <p><span class="label">หน่วยงานสำหรับจัดการ:</span> {{ department }}</p>
+            <p><span class="label">ข้อมูลเพิ่มเติม (จากผู้รับเรื่อง):</span> {{ additional_info if additional_info and additional_info != '-' else 'ไม่มี' }}</p>
+        </div>
+
+        <div class="section">
+            <h2>ผู้มีส่วนรับเรื่องร้องเรียน</h2>
+            {% if recipients %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>ชื่อ</th>
+                        <th>อีเมล</th>
+                        <th>หน่วยงาน</th>
+                        <th>บทบาท</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for r in recipients %}
+                    <tr>
+                        <td>{{ r.get('name', 'N/A') }}</td>
+                        <td>{{ r.get('email', 'N/A') }}</td>
+                        <td>{{ r.get('department', 'N/A') }}</td>
+                        <td>{{ r.get('role', 'N/A') }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p class="no-data">ไม่มีผู้รับเรื่องที่ระบุ</p>
+            {% endif %}
+        </div>
+
+        <div class="section">
+            <h2>ระดับความรุนแรง</h2>
+            <p>{{ severity_level }}</p>
+        </div>
+
+        <div class="section">
+            <h2>การจัดการข้อร้องเรียน</h2>
+            <h3>1. การตรวจสอบข้อร้องเรียน</h3>
+            <p><span class="label">รายละเอียด:</span> {{ correction1 }}</p>
+            <p><span class="label">ผู้รับผิดชอบ:</span> {{ inspector_name1 }}</p>
+            <p><span class="label">วันที่:</span> {{ inspection_date1 }}</p>
+
+            <h3>2. รายละเอียดของการแก้ไขข้อบกพร่อง</h3>
+            <p><span class="label">รายละเอียด:</span> {{ correction2 }}</p>
+            <p><span class="label">ผู้รับผิดชอบ:</span> {{ inspector_name2 }}</p>
+            <p><span class="label">วันที่:</span> {{ inspection_date2 }}</p>
+
+            <h3>3. รายละเอียดของการปฏิบัติการแก้ไขไม่ให้เกิดซ้ำ</h3>
+            <p><span class="label">รายละเอียด:</span> {{ correction3 }}</p>
+            <p><span class="label">ผู้รับผิดชอบ:</span> {{ inspector_name3 }}</p>
+            <p><span class="label">วันที่:</span> {{ inspection_date3 }}</p>
+
+            <h3>4. การตอบสนองต่อลูกค้า</h3>
+            <p><span class="label">รายละเอียด:</span> {{ correction4 }}</p>
+            <p><span class="label">ผู้รับผิดชอบ:</span> {{ inspector_name4 }}</p>
+            <p><span class="label">วันที่:</span> {{ inspection_date4 }}</p>
+
+            <h3>5. ความคิดเห็นของลูกค้า</h3>
+            <p><span class="label">รายละเอียด:</span> {{ correction5 }}</p>
+            <p><span class="label">ผู้รับผิดชอบ:</span> {{ inspector_name5 }}</p>
+            <p><span class="label">วันที่:</span> {{ inspection_date5 }}</p>
+        </div>
+
+        <div class="section">
+            <h2>ข้อแนะนำ/เสนอแนะ จากผู้อนุมัติ</h2>
+            <p>{{ approver_recommendation if approver_recommendation else 'ไม่มี' }}</p>
+        </div>
+
+        <div class="footer">
+            <p>เอกสารนี้สร้างขึ้นเมื่อ: {{ complaint.export_date | default( "ไม่ระบุวันที่" ) }}</p>
+        </div>
+    </div>
+</body>
+</html>
