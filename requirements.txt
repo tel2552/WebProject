@@ -12,3 +12,4 @@ jinja2
 python-multipart
 gunicorn
 APScheduler
+WeasyPrint

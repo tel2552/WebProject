@@ -42,11 +42,11 @@ function toggleDetailsTextArea() {
     const isPersonnelTeam = teamSelect.value === "ด้านบุคลากร";
     const isOtherTeam = teamSelect.value === "อื่นๆ";
 
-    detailsLabel.classList.toggle('hidden', isPersonnelTeam);
-    detailsLabel.classList.toggle('visible', !isPersonnelTeam);
-    detailsTextArea.classList.toggle('hidden', isPersonnelTeam);
-    detailsTextArea.classList.toggle('visible', !isPersonnelTeam);
-    detailsTextArea.required = !isPersonnelTeam;
+    // detailsLabel.classList.toggle('hidden', isPersonnelTeam);
+    // detailsLabel.classList.toggle('visible', !isPersonnelTeam);
+    // detailsTextArea.classList.toggle('hidden', isPersonnelTeam);
+    // detailsTextArea.classList.toggle('visible', !isPersonnelTeam);
+    // detailsTextArea.required = !isPersonnelTeam;
 
     otherTypeInput.disabled = !isOtherTeam;
     if (!isOtherTeam) {
@@ -114,8 +114,8 @@ document.addEventListener('DOMContentLoaded', () => {
         complaintForm.addEventListener("submit", async (e) => {
             e.preventDefault();
             if (modal && modal.style.display !== 'none' && !termsCheckbox.checked) {
-                 Swal.fire('ข้อควรทราบ', 'กรุณายอมรับข้อกำหนดและเงื่อนไขก่อนส่งข้อร้องเรียน', 'warning');
-                 return;
+                Swal.fire('ข้อควรทราบ', 'กรุณายอมรับข้อกำหนดและเงื่อนไขก่อนส่งข้อร้องเรียน', 'warning');
+                return;
             }
             Swal.fire({ title: 'กำลังส่งเรื่องร้องเรียน...', html: 'กรุณารอสักครู่', allowEscapeKey: false, allowOutsideClick: false, didOpen: () => { Swal.showLoading(); } });
             const formData = new FormData(complaintForm);

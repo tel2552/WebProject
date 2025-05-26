@@ -1,39 +1,5 @@
 <!DOCTYPE html>
 <html lang="en">
-<style>
-    body {
-        background-image: url("/static/img/IMG_4022.jpg");
-        background-color: #cccccc;
-        background-position: center;
-        background-repeat: no-repeat;
-        -moz-background-size: 100% 100%;
-        -webkit-background-size: 100% 100%;
-        background-size: 100% 100%;
-    }
-
-    h1 {
-        color: #fff; /* White text for contrast */
-        text-align: center; /* จัดข้อความภายใน h1 ให้อยู่กลาง */
-        padding: 20px;
-        background: linear-gradient(45deg, #006400, #00b894); /* Gradient background */
-        border-radius: 10px;
-        margin-bottom: 30px;
-        max-width: 50%; /* กำหนดความกว้างสูงสุด */
-        margin-left: auto; /* ทำให้ Element อยู่กึ่งกลางแนวนอน */
-        margin-right: auto; /* ทำให้ Element อยู่กึ่งกลางแนวนอน */
-        /* transform: translateX(-50%); */ /* ไม่จำเป็นแล้วเมื่อใช้ margin: auto */
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Subtle shadow */
-        display: block; /* ทำให้ margin: auto ทำงานได้ */
-    }
-
-    p {
-        text-align: center;
-        color: #1d1d1d; /* White text for contrast */
-        font-size: 1.2em;
-        margin-top: 20px;
-    }
-</style>
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -41,6 +7,7 @@
     <link rel="icon" href="/static/favicon.ico" type="image/x-icon">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="/static/css/login.css">
 </head>
 
 <body>
@@ -57,40 +24,7 @@
         </form>
         <p>ต้องการส่งคำร้องเรียน? <a href="/">กดตรงนี้</a></p>
     </div>
-    <script>
-        document.getElementById("login-form").addEventListener("submit", async (event) => {
-            event.preventDefault();
-
-            const username = document.getElementById("username").value;
-            const password = document.getElementById("password").value;
-
-            const formData = new URLSearchParams();
-            formData.append("username", username);
-            formData.append("password", password);
-
-            const response = await fetch("/login", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/x-www-form-urlencoded"
-                },
-                body: formData.toString()
-            });
-            const result = await response.json();
-            // const token = data.access_token;
-            if (response.ok) {
-                localStorage.setItem("access_token", result.token);
-                window.location.href = result.redirect_url; // Redirect to the new URL
-            } else {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'เกิดข้อผิดพลาด!',
-                    text: "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง",
-                    confirmButtonText: 'ตกลง',
-                });
-            }
-        });
-
-    </script>
+    <script type="module" src="/static/js/login.js"></script>
 </body>
 
 </html>

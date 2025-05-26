@@ -1,0 +1,122 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    display: block;
+    background-image: url("/static/img/IMG_4022.jpg");
+    background-color: #cccccc;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: cover; /* ปรับให้เต็มจอ */
+    min-height: 100vh; /* บังคับให้เต็มจอเสมอ */
+}
+
+.content {
+    margin-left: 0; /* เริ่มต้นที่ 0 */
+    flex-grow: 1;
+    padding: 20px;
+    transition: margin-left 0.3s; /* ทำให้ขยับนุ่มนวล */
+}
+
+h1 {
+    font-size: 2.5em; /* ขนาดตัวอักษร */
+    font-weight: bold;
+    color: white;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    padding: 10px 20px; /* ปรับขนาด padding ให้พอดี */
+    background: linear-gradient(45deg, #006400, #00b894); /* ไล่สีเขียวเข้ม -> เขียวอ่อน */
+    border-radius: 10px;
+    text-shadow: 3px 3px 5px rgba(0, 0, 0, 0.3);
+    
+    display: inline-block; /* ทำให้พื้นหลังพอดีกับตัวอักษร */
+    text-align: center; /* จัดข้อความให้อยู่ตรงกลาง */
+    margin: 20px auto; /* ทำให้ h1 อยู่ตรงกลางแนวนอน */
+    width: auto; /* ป้องกันไม่ให้ขยายเกินตัวอักษร */
+}
+
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 20px 0;
+    background-color: #f4f4f4;
+}
+
+th, td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+}
+
+th {
+    background-color: #f4f4f4;
+    color: #333;
+}
+
+tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
+
+.status {
+    font-weight: bold;
+    color: #007BFF;
+}
+
+.status-cancelled {
+    color: gray;
+}
+
+.btn-undo {
+    color: white;
+    background-color: #28a745; /* Green */
+    border: none;
+    padding: 5px 10px;
+    cursor: pointer;
+    border-radius: 4px;
+}
+
+.btn-undo:hover {
+    background-color: #218838;
+}
+.search-container {
+    margin-bottom: 20px;
+    text-align: left; /* Align search options to the left */
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+}
+
+.search-container label {
+    margin-right: 5px;
+    white-space: nowrap; /* Prevent label from wrapping */
+}
+
+.search-container input[type="text"],
+.search-container input[type="date"] {
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    flex: 1; /* Allow input fields to grow */
+    max-width: 200px;
+}
+.btn-search {
+    color: white;
+    background-color: #007BFF;
+    border: none;
+    padding: 10px 20px;
+    cursor: pointer;
+    border-radius: 4px;
+}
+
+.btn-search:hover {
+    background-color: #0056b3;
+}
+.warning-message {
+    background-color: #fff3cd; /* Light yellow */
+    color: #856404; /* Darker yellow */
+    padding: 10px;
+    border-radius: 4px;
+    margin-bottom: 20px;
+}

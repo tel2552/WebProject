@@ -6,133 +6,7 @@
     <title>ส่งคำร้องไปยังหน่วยงาน</title>
     <link rel="icon" href="/static/favicon.ico" type="image/x-icon">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            display: block;
-            background-image: url("/static/img/IMG_4022.jpg");
-            background-color: #cccccc;
-            background-position: center;
-            background-repeat: no-repeat;
-            background-size: cover;
-            min-height: 100vh;
-        }
-
-        h1 {
-            color: #fff; /* White text for contrast */
-            text-align: center;
-            padding: 20px;
-            background: linear-gradient(45deg, #006400, #00b894); /* Gradient background */
-            border-radius: 10px;
-            margin-bottom: 30px;
-            max-width: 50%;
-            margin-left: 50%;
-            margin-right: 20%;
-            transform: translateX(-50%); /* /* Center the title */
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); /* Subtle shadow */
-        }
-
-        form {
-            margin-top: auto;
-            padding: 30px;
-            background-color: rgba(255, 255, 255, 0.9);
-            border-radius: 10px;
-            width: 100%;
-            max-width: 600px; /* กำหนดขนาดสูงสุดของฟอร์ม */
-            max-height: auto; /* ป้องกันไม่ให้สูงเกินไป */
-            margin-left: auto;
-            margin-right: auto;
-        }
-
-        label {
-            font-weight: bold;
-            margin-bottom: 8px;
-            display: block;
-            color: #333;
-        }
-
-        input, textarea, select {
-            width: 100%;
-            padding: 12px;
-            margin-bottom: 20px;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            font-size: 1em;
-        }
-
-        input:focus, textarea:focus, select:focus {
-            outline: none;
-            border-color: #007BFF;
-            box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
-        }
-
-        button {
-            background-color: #28a745;
-            color: white;
-            border: none;
-            padding: 12px 20px;
-            cursor: pointer;
-            border-radius: 6px;
-            font-size: 1em;
-            transition: background-color 0.3s ease;
-        }
-
-        button:hover {
-            background-color: #218838;
-        }
-
-        .correction-section {
-            border: 2px solid #007BFF;
-            border-radius: 8px;
-            padding: 25px;
-            background-color: #f9f9f9dd;
-            box-shadow: 0 4px 8px rgba(0, 123, 255, 0.2);
-            width: 100%;
-            max-width: 700px; /* ให้กรอบของ fieldset มีขนาดเท่ากับฟอร์ม */
-            margin-left: auto;
-            margin-right: auto;
-        }
-
-        .correction-section legend {
-            font-size: 1.4em;
-            font-weight: bold;
-            color: white; /* สีของตัวอักษร */
-            background-color: #007BFF; /* สีพื้นหลังของ legend */
-            padding: 5px 15px; /* เพิ่มระยะห่างภายใน */
-            border-radius: 6px; /* มุมโค้งของกล่อง */
-            width: fit-content; /* ให้ขนาดของกล่องพอดีกับข้อความ */
-            margin-bottom: 20px; /* เพิ่มระยะห่างด้านล่าง */
-            text-align: center; /* จัดข้อความให้อยู่กลาง */
-        }
-
-
-        .correction-form {
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
-
-        .correction-form label {
-            font-weight: bold;
-            color: #333;
-        }
-
-        .correction-form textarea,
-        .correction-form input[type="text"],
-        .correction-form input[type="date"] {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            font-size: 1em;
-        }
-
-        .correction-form textarea {
-            resize: vertical;
-        }
-    </style>
+    <link rel="stylesheet" href="/static/css/admin_admit_complaint.css">
 </head>
 <body>
     <h1>รับคำร้องเรียน</h1>
@@ -142,17 +16,32 @@
             <label>ผู้วิเคราะห์ข้อร้องเรียน:</label>
             <input type="text" id="admin_name" readonly>
 
+            <label>หัวข้อเรื่อง:</label>
+            <input type="text" id="title" readonly>
+
             <label>ชื่อผู้ร้องเรียน:</label>
             <input type="text" id="name" readonly>
 
-            <label>หัวข้อเรื่อง:</label>
-            <input type="text" id="title" readonly>
+            <label for="original_date_display">วันที่พบปัญหา:</label>
+            <input type="date" id="original_date_display" name="original_date_display" readonly>
+
+            <label>ช่องทางติดต่อกลับผู้ร้องเรียน:</label>
+            <div style="margin-bottom: 20px;">
+                <label for="original_phone_display" style="font-weight: normal; margin-left: 10px;">โทรศัพท์:</label>
+                <input type="text" id="original_phone_display" name="original_phone_display" readonly style="margin-bottom: 5px;">
+                <label for="original_email_display" style="font-weight: normal; margin-left: 10px;">อีเมล:</label>
+                <input type="email" id="original_email_display" name="original_email_display" readonly>
+            </div>
 
             <label>รายละเอียด:</label>
             <textarea id="details" rows="5" readonly></textarea>
 
-            <label>หน่วยงานสำหรับจัดการ:</label>
+            <label for="original_team_display">ประเภทเรื่องที่ส่งมา (จากผู้ร้องเรียน):</label>
+            <input type="text" id="original_team_display" name="original_team_display" readonly>
+
+            <label for="department">หน่วยงานสำหรับจัดการ (ที่ Admin เลือก):</label>
             <select name="team" id="department" required>
+                <option value="" disabled selected>--- กรุณาเลือกหน่วยงาน ---</option>
                 <option value="ด้านบุคลากร">ด้านบุคลากร</option>
                 <option value="การบริการงานวิจัย">การบริการงานวิจัย</option>
                 <option value="การบริการวิชาการ">การบริการวิชาการ</option>

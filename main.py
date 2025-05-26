@@ -1,7 +1,7 @@
 import os
 import uvicorn
 from fastapi import FastAPI, HTTPException, Depends, Request, Form, Body, Response, status , Query, Cookie
-from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, ValidationInfo
@@ -17,6 +17,8 @@ from collections import OrderedDict
 from pymongo.errors import ConnectionFailure
 from jose import JWTError, jwt
 from auth import SECRET_KEY, ALGORITHM
+from pdf_service import generate_complaint_pdf_from_data # Import the new PDF service
+import io # For StreamingResponse
 from pydantic_core import core_schema
 
 app = FastAPI()
@@ -530,6 +532,40 @@ async def view_complete_complaint(id: str, request: Request):  # เพิ่ม
         )
     except InvalidId:
         raise HTTPException(status_code=400, detail=f"Invalid complaint ID: {id}") 
+
+# --- New Endpoint for PDF Export ---
+@app.post("/admin/export-pdf/{complaint_id}")
+async def export_complaint_to_pdf_endpoint(complaint_id: str, current_user: dict = Depends(get_current_user)):
+    try:
+        obj_complaint_id = ObjectId(complaint_id)
+    except InvalidId:
+        raise HTTPException(status_code=400, detail=f"Invalid complaint ID format: {complaint_id}")
+
+    complaint_data = complaints_collection.find_one({"_id": obj_complaint_id})
+
+    if not complaint_data:
+        raise HTTPException(status_code=404, detail="Complaint not found")
+
+    # Convert ObjectId to string for display and ensure all data is serializable if needed
+    complaint_data["_id"] = str(complaint_data["_id"])
+    
+    # Add any additional data needed for the PDF template not directly in complaint_data
+    # For example, the user who is exporting or a timestamp for export
+    complaint_data["processed_by_admin"] = current_user.get("username", "N/A")
+    complaint_data["export_date"] = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
+
+    try:
+        pdf_bytes = generate_complaint_pdf_from_data(complaint_data)
+    except RuntimeError as e: # Catch errors from PDF template loading
+        raise HTTPException(status_code=500, detail=f"Could not generate PDF: {e}")
+    except Exception as e:
+        # Log the full error for debugging
+        print(f"Unexpected error during PDF generation: {e}")
+        raise HTTPException(status_code=500, detail=f"An unexpected error occurred while generating the PDF: {str(e)}")
+
+    return StreamingResponse(io.BytesIO(pdf_bytes),
+                            media_type="application/pdf",
+                            headers={"Content-Disposition": f"attachment; filename=complaint_report_{complaint_id}.pdf"})
 
 @app.post("/admin/admit-complaint/{id}")
 def resolve_complaint(id: str, department: str = Form(...), additional_info: str = Form(...)):
