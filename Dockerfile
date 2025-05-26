@@ -9,9 +9,15 @@ ENV PIP_EXTRA_INDEX_URL=https://www.piwheels.org/simple
 
 # ติดตั้ง system dependencies ที่จำเป็นสำหรับ WeasyPrint และอื่นๆ
 # - แก้ไข sources.list ให้มี 'contrib' repository สำหรับ ttf-mscorefonts-installer
+#   Original attempt to modify /etc/apt/sources.list with sed failed (file not found).
+#   Now adding 'contrib' component by creating a new file in /etc/apt/sources.list.d/
 # - ย้ายตำแหน่ง option '--no-install-recommends' ให้ถูกต้อง
 # - ยอมรับ EULA ของ Microsoft fonts ล่วงหน้า
-RUN sed -i 's/main$/main contrib/' /etc/apt/sources.list \
+RUN { \
+        echo "deb http://deb.debian.org/debian bullseye contrib"; \
+        echo "deb http://security.debian.org/debian-security bullseye-security contrib"; \
+        echo "deb http://deb.debian.org/debian bullseye-updates contrib"; \
+    } > /etc/apt/sources.list.d/contrib.list \
     && apt-get update \
     && echo "ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true" | debconf-set-selections \
     && apt-get install -y --no-install-recommends \
