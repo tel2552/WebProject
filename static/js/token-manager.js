@@ -67,16 +67,19 @@ export async function getUserData() {
     }
 
     try {
-        // เรียก API ทั้งสองแบบพร้อมกัน
-        const [roleData, teamData] = await Promise.all([
+        // เรียก API ทั้งสามแบบพร้อมกัน (role, team, username)
+        const [roleData, teamData, usernameData] = await Promise.all([
             fetchDataWithToken('/admin/get-userrole'),
-            fetchDataWithToken('/admin/get-userteam')
+            fetchDataWithToken('/admin/get-userteam'),
+            fetchDataWithToken('/admin/get-username') // Assuming this endpoint returns { username: "..." }
         ]);
 
-        if (roleData && teamData) {
+        // Check if all necessary data was fetched
+        if (roleData && teamData && usernameData) {
             const userData = {
                 role: roleData.role,
-                team: teamData.team
+                team: teamData.team,
+                username: usernameData.username // Store the username
             };
             // เก็บข้อมูลลง localStorage
             localStorage.setItem('userData', JSON.stringify(userData));
@@ -108,3 +111,11 @@ export async function getUserTeam() {
     return userData ? userData.team : null;
 }
 
+/**
+ * Gets the user's username.
+ * @returns {Promise<string|null>} The user's username or null if an error occurs.
+ */
+export async function getUsername() {
+    const userData = await getUserData();
+    return userData ? userData.username : null;
+}

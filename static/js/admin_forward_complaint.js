@@ -386,7 +386,7 @@ document.querySelector("button[type='submit1']").addEventListener("click", async
                 title: 'บันทึกข้อมูลสำเร็จ!',
                 text: 'บันทึกข้อมูลเรียบร้อยแล้ว',
                 confirmButtonText: 'ตกลง',
-                timer: 3000, // Automatically close after 3 seconds
+                timer: 3000,
                 timerProgressBar: true,
             }).then(() => {
                 // form.reset(); //reset form - อาจจะไม่ต้องการ reset ถ้าผู้ใช้ยังต้องการแก้ไขต่อ

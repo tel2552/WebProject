@@ -8,7 +8,7 @@ import io
 
 from database import complaints_collection, email_recipients_collection, users_collection
 from services.auth import get_current_user
-from services.email_service import send_email
+from services.email_service import send_email, send_forwarded_for_approval_email, send_complaint_reverted_for_revision_email # Import the new email function
 from services.pdf_service import generate_complaint_pdf_from_data
 from models.complaint_models import ForwardComplaintPayload # Complaint model is not directly used as Form fields are used
 
@@ -35,9 +35,10 @@ async def submit_complaint_route(
 
     email_recipient_doc = email_recipients_collection.find_one({"team": team})
     recipient_email = email_recipient_doc["email"] if email_recipient_doc else "default@example.com"
+    team_name = email_recipient_doc["team"] if email_recipient_doc else "Default Team"
 
     try:
-        send_email(f"New Complaint: {title}", complaint_id, recipient_email)
+        send_email(f"New Complaint: {title}", complaint_id, recipient_email, team_name)
     except Exception as e:
         print(f"Failed to send submission email for {complaint_id}: {e}") # Log error
 
@@ -137,7 +138,11 @@ async def get_completed_complaints_route():
             "resolved_date": complaint.get("resolved_date").isoformat() if complaint.get("resolved_date") else None,
             "inspector_name2": complaint.get("inspector_name2"), # Example of specific fields
             "severity_level": complaint.get("severity_level"),
+            "correction1": complaint.get("correction1"),
             "correction2": complaint.get("correction2"),
+            "correction3": complaint.get("correction3"),
+            "correction4": complaint.get("correction4"),
+            "correction5": complaint.get("correction5"),
             "complete_date": complaint.get("complete_date").isoformat() if complaint.get("complete_date") else None,
         }
         complaints_list.append(complaint_data)
@@ -219,18 +224,46 @@ async def save_complaint_details_route(complaint_id: str, payload: ForwardCompla
 
 @router.post("/forward-complaint/{complaint_id}")
 async def forward_complaint_action_route(complaint_id: str, payload: ForwardComplaintPayload = Body(...)):
-    success, updated_complaint = await _common_payload_update(complaint_id, payload, "Forwarded", "forwarded_date") # or "admit_date"
+    # สมมติว่า current_user ถูก inject เข้ามาใน _common_payload_update หรือ get_current_user ถูกเรียกที่นี่
+    # เพื่อให้ได้ข้อมูลผู้ที่ทำการ forward
+    # นี่เป็นตัวอย่าง หาก _common_payload_update ไม่ได้จัดการ current_user คุณอาจจะต้อง get_current_user ที่นี่
+    # current_user_info = await get_current_user_dependency() # สมมติว่ามี dependency นี้
+    # หรือถ้า _common_payload_update ไม่ได้ใช้ current_user ก็ต้อง get มาเอง
+    # current_user = await get_current_user() # ถ้า get_current_user เป็น async
+    # หาก get_current_user ไม่ใช่ async และคุณต้องการใช้ข้อมูล user ที่ทำการ forward:
+    # คุณอาจจะต้องปรับ _common_payload_update ให้รับ current_user หรือเรียก get_current_user ภายใน route นี้
+    # เพื่อความง่าย จะสมมติว่าเรามี current_user.username
+    # current_forwarder_username = "Admin User" # Placeholder, ควรมาจาก current_user
+
+    success, updated_complaint = _common_payload_update(complaint_id, payload, "Forwarded", "forwarded_date")
+    
     if success and updated_complaint:
         try:
             complaint_title = updated_complaint.get("title", "N/A")
-            # Determine recipient email for forwarding, e.g., from payload or a fixed address
-            recipient_email = "janramsae@pim.ac.th" # Example
-            send_email(
-                title=f"Forwarded: {complaint_title}",
-                complaint_id=complaint_id,
-                recipient_email=recipient_email
-            )
-            print(f"Forwarded email sent for complaint {complaint_id}")
+            team_name = updated_complaint.get("team", "N/A")
+            
+            # Fetch approver_email from the database based on the team_name
+            approver_email_doc = email_recipients_collection.find_one({"team": team_name})
+            approver_email = None
+            if approver_email_doc and approver_email_doc.get("approver_email"):
+                approver_email = approver_email_doc.get("approver_email")
+            else:
+                print(f"Warning: Approver email not found for team '{team_name}'. Email will not be sent to approver.")
+                # Optionally, you could set a default approver or raise an error if an approver is mandatory
+
+            approval_details_url = f"http://your-website.com/admin/approve-complaint/{complaint_id}" # ตัวอย่าง URL ควรเปลี่ยนหลังมี domain หลักแล้ว
+            forwarded_by_user = "Admin" # Placeholder
+
+            if approver_email: # Only send if an approver email was found
+                send_forwarded_for_approval_email(
+                    complaint_title=complaint_title, # Use complaint_title directly
+                    complaint_id=complaint_id,
+                    team_name=team_name,
+                    forwarded_by=forwarded_by_user, 
+                    recipient_email=approver_email,
+                    details_url=approval_details_url
+                )
+                print(f"Forwarded for approval email sent to {approver_email} for complaint {complaint_id}")
         except Exception as email_error:
             print(f"Error sending forwarded email for complaint {complaint_id}: {email_error}")
         return {"message": "Complaint Forwarded successfully"}
@@ -252,15 +285,55 @@ async def complete_complaint_action_route(complaint_id: str, approver_recommenda
 
 @router.post("/undo-complaint/{complaint_id}") # To revert from Complete/Forwarded to Admit
 async def undo_complaint_status_route(complaint_id: str, approver_recommendation: str = Form(...)): # approver_recommendation might be for logging the undo reason
+    # The user performing this action is the approver.
+    # We need to get their username.
+    # Assuming get_current_user returns a dict with 'username'
+    # This part might need adjustment based on how you get the current logged-in user's details.
+    # For simplicity, let's assume a placeholder or that get_current_user is available.
+    # current_approver = await get_current_user_dependency() # If you have a dependency
+    # For now, a placeholder:
+    current_approver_username = "Approver" # Placeholder
+
     try:
         obj_id = ObjectId(complaint_id)
     except bson_errors.InvalidId:
         raise HTTPException(status_code=400, detail="Invalid complaint ID format")
 
+    # First, find the complaint to get its details, especially the team
+    complaint_to_undo = complaints_collection.find_one({"_id": obj_id})
+    if not complaint_to_undo:
+        raise HTTPException(status_code=404, detail="Complaint not found.")
+
+    complaint_title = complaint_to_undo.get("title", "N/A")
+    team_name = complaint_to_undo.get("team")
+
     result = complaints_collection.update_one(
         {"_id": obj_id},
         {"$set": {"status": "Admit", "approver_recommendation": f"Undo: {approver_recommendation}", "complete_date": None, "forwarded_date": None}} # Clear relevant dates
     )
+
     if result.modified_count == 1:
+        # If update was successful, try to send an email to the team
+        if team_name:
+            team_email_doc = email_recipients_collection.find_one({"team": team_name})
+            if team_email_doc and team_email_doc.get("email"):
+                recipient_team_email = team_email_doc.get("email")
+                # URL for the team to view and edit the complaint
+                revision_details_url = f"http://your-website.com/admin/admit-complaint/{complaint_id}" # ตัวอย่าง URL ควรเปลี่ยนหลังมี domain หลักแล้ว
+                try:
+                    send_complaint_reverted_for_revision_email(
+                        complaint_title=complaint_title,
+                        complaint_id=complaint_id,
+                        team_name=team_name,
+                        recipient_email=recipient_team_email,
+                        rejection_reason=approver_recommendation, # This is the reason from the form
+                        reverted_by=current_approver_username, # The user who clicked "Undo"
+                        details_url=revision_details_url
+                    )
+                    print(f"Reverted for revision email sent to {recipient_team_email} for complaint {complaint_id}")
+                except Exception as email_error:
+                    print(f"Error sending reverted for revision email for complaint {complaint_id}: {email_error}")
+            else:
+                print(f"Warning: Email for team '{team_name}' not found. Cannot send revision notification.")
         return {"message": "Complaint status reverted to Admit successfully"}
     raise HTTPException(status_code=404, detail="Complaint not found or failed to undo")

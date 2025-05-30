@@ -9,7 +9,7 @@ async function fetchAdmitComplaints() {
         console.error("Complaints table body not found!");
         return;
     }
-    tableBody.innerHTML = '<tr><td colspan="8" style="text-align: center;">กำลังโหลดข้อมูล...</td></tr>'; // แสดงสถานะกำลังโหลด
+    tableBody.innerHTML = '<tr><td colspan="7" style="text-align: center;">กำลังโหลดข้อมูล...</td></tr>'; // แสดงสถานะกำลังโหลด (แก้ไข colspan)
 
     try {
         // ใช้ Promise.all เพื่อดึงข้อมูล role, team และ complaints พร้อมกันเพื่อประสิทธิภาพ
@@ -26,7 +26,7 @@ async function fetchAdmitComplaints() {
         if (userRole === null || userTeam === null) {
              // getUserData ใน token-manager ควรจะ log error ไปแล้ว
              // อาจแสดงข้อความในตารางเพิ่มเติม
-             tableBody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: red;">ไม่สามารถโหลดข้อมูลผู้ใช้ได้ กรุณาลองใหม่</td></tr>';
+             tableBody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: red;">ไม่สามารถโหลดข้อมูลผู้ใช้ได้ กรุณาลองใหม่</td></tr>'; // (แก้ไข colspan)
              // อาจแสดง Swal เพิ่มเติมถ้าต้องการ
              // Swal.fire('Error', 'Could not load user information.', 'error');
              return; // หยุดการทำงานถ้าข้อมูล user ไม่ครบ
@@ -36,8 +36,9 @@ async function fetchAdmitComplaints() {
 
         let hasData = false;
         complaints.forEach(complaint => {
-            // กรองเฉพาะ status "Admit"
-            if (complaint.status && complaint.status.toLowerCase() === "admit") {
+            // กรองเฉพาะ status "Admit" จาก backend
+            const originalStatus = complaint.status ? complaint.status.toLowerCase() : '';
+            if (originalStatus === "admit") {
                 // กรองตามทีม ถ้า user เป็น "admin" และมี team กำหนดไว้
                 if (userRole === "admin" && userTeam && complaint.team !== userTeam) {
                     return; // ข้าม complaint นี้ไป ไม่ตรงกับทีมของ admin
@@ -53,7 +54,8 @@ async function fetchAdmitComplaints() {
                 const date = complaint.date ? new Date(complaint.date).toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' }) : 'N/A'; // จัดรูปแบบวันที่เป็นภาษาไทย
                 const contact = complaint.contact || '';
                 const team = complaint.team || 'N/A';
-                const status = complaint.status || 'N/A';
+                // const status = complaint.status || 'N/A'; // สถานะเดิมจาก backend
+                const displayStatus = 'On Process'; // ชื่อสถานะที่ต้องการให้แสดงผล
                 const complaintId = complaint._id; // สมมติว่า MongoDB ObjectId อยู่ใน _id
 
                 row.innerHTML = `
@@ -62,7 +64,7 @@ async function fetchAdmitComplaints() {
                     <td>${escapeHTML(date)}</td>
                     <td>${escapeHTML(contact)}</td>
                     <td>${escapeHTML(team)}</td>
-                    <td class="status status-admit">${escapeHTML(status)}</td>
+                    <td class="status status-on-process">${escapeHTML(displayStatus)}</td>
                     <td>
                         ${complaintId ? `
                         <form action="/admin/forward-complaint/${complaintId}" method="get" style="margin: 0;">
@@ -75,16 +77,16 @@ async function fetchAdmitComplaints() {
         });
 
         if (!hasData) {
-            tableBody.innerHTML = '<tr><td colspan="8" style="text-align: center;">ไม่พบคำร้องเรียนที่ตรงตามเงื่อนไข (สถานะ: Admit)</td></tr>';
+            tableBody.innerHTML = '<tr><td colspan="7" style="text-align: center;">ไม่พบคำร้องเรียน (สถานะ "Admit" ซึ่งแสดงผลเป็น "On Process")</td></tr>'; // (แก้ไข colspan และข้อความ)
         }
 
         // เรียงลำดับตารางหลังจากใส่ข้อมูลแล้ว
         sortTable();
 
     } catch (error) {
-        // Catch error จาก Promise.all หรือ fetchDataWithToken
+        // Catch error จาก Promise.all หรือ fetchDataWithToken (แก้ไข colspan)
         console.error("เกิดข้อผิดพลาดในการดึงหรือประมวลผลข้อมูลคำร้อง:", error);
-        tableBody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: red;">เกิดข้อผิดพลาด: ${error.message || 'ไม่สามารถโหลดข้อมูลได้'}</td></tr>`;
+        tableBody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: red;">เกิดข้อผิดพลาด: ${error.message || 'ไม่สามารถโหลดข้อมูลได้'}</td></tr>`;
         // แสดง SweetAlert แจ้งผู้ใช้
         Swal.fire({
             icon: 'error',

@@ -9,7 +9,7 @@ async function fetchForwardedAndCompleteComplaints() {
         console.error("Complaints table body not found!");
         return;
     }
-    tableBody.innerHTML = '<tr><td colspan="8" style="text-align: center;">กำลังโหลดข้อมูล...</td></tr>'; // แสดงสถานะกำลังโหลด
+    tableBody.innerHTML = '<tr><td colspan="7" style="text-align: center;">กำลังโหลดข้อมูล...</td></tr>'; // แสดงสถานะกำลังโหลด (แก้ไข colspan)
 
     try {
         // ใช้ Promise.all เพื่อดึงข้อมูล role, team และ complaints พร้อมกัน
@@ -21,7 +21,7 @@ async function fetchForwardedAndCompleteComplaints() {
 
         // ตรวจสอบว่า getUserRole/getUserTeam ทำงานสำเร็จหรือไม่
         if (userRole === null || userTeam === null) {
-            tableBody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: red;">ไม่สามารถโหลดข้อมูลผู้ใช้ได้ กรุณาลองใหม่</td></tr>';
+            tableBody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: red;">ไม่สามารถโหลดข้อมูลผู้ใช้ได้ กรุณาลองใหม่</td></tr>'; // (แก้ไข colspan)
             // Swal.fire('Error', 'Could not load user information.', 'error'); // อาจแสดง Swal เพิ่มเติม
             return;
         }
@@ -32,8 +32,9 @@ async function fetchForwardedAndCompleteComplaints() {
         complaints.forEach(complaint => {
             // กรองเฉพาะสถานะ "Forwarded" หรือ "Complete"
             const statusLower = complaint.status ? complaint.status.toLowerCase() : '';
-            if (statusLower === "forwarded" || statusLower === "complete") {
+            let displayStatusText = complaint.status || 'N/A';
 
+            if (statusLower === "forwarded" || statusLower === "complete") {
                 // กรองตามทีม ถ้า user เป็น "admin" และมี team กำหนดไว้
                 if (userRole === "admin" && userTeam && complaint.team !== userTeam) {
                     return; // ข้าม complaint นี้ไป ไม่ตรงกับทีมของ admin
@@ -51,7 +52,6 @@ async function fetchForwardedAndCompleteComplaints() {
                 const date = complaint.date ? new Date(complaint.date).toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' }) : 'N/A';
                 const contact = complaint.contact || '';
                 const team = complaint.team || 'N/A';
-                const status = complaint.status || 'N/A';
                 const complaintId = complaint._id;
 
                 let actionButton = '';
@@ -80,6 +80,7 @@ async function fetchForwardedAndCompleteComplaints() {
                 let statusClass = "status";
                 if (statusLower === "forwarded") {
                     statusClass += " status-forwarded";
+                    displayStatusText = "Waiting for Approval"; // เปลี่ยนข้อความที่แสดงผล
                 } else if (statusLower === "complete") {
                     statusClass += " status-complete";
                 }
@@ -90,23 +91,23 @@ async function fetchForwardedAndCompleteComplaints() {
                     <td>${escapeHTML(date)}</td>
                     <td>${escapeHTML(contact)}</td>
                     <td>${escapeHTML(team)}</td>
-                    <td class="${statusClass}">${escapeHTML(status)}</td>
+                    <td class="${statusClass}">${escapeHTML(displayStatusText)}</td>
                     <td>${actionButton}</td>
                 `;
             }
         });
 
         if (!hasData) {
-            tableBody.innerHTML = '<tr><td colspan="8" style="text-align: center;">ไม่พบคำร้องเรียนที่รออนุมัติหรือดำเนินการเสร็จสิ้น</td></tr>';
+            tableBody.innerHTML = '<tr><td colspan="7" style="text-align: center;">ไม่พบคำร้องเรียนที่รออนุมัติหรือดำเนินการเสร็จสิ้น</td></tr>'; // (แก้ไข colspan)
         }
 
         // เรียงลำดับตารางหลังจากใส่ข้อมูลแล้ว
         sortTable();
 
     } catch (error) {
-        // Catch error จาก Promise.all หรือ fetchDataWithToken
+        // Catch error จาก Promise.all หรือ fetchDataWithToken (แก้ไข colspan)
         console.error("เกิดข้อผิดพลาดในการดึงหรือประมวลผลข้อมูลคำร้อง:", error);
-        tableBody.innerHTML = `<tr><td colspan="8" style="text-align: center; color: red;">เกิดข้อผิดพลาด: ${error.message || 'ไม่สามารถโหลดข้อมูลได้'}</td></tr>`;
+        tableBody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: red;">เกิดข้อผิดพลาด: ${error.message || 'ไม่สามารถโหลดข้อมูลได้'}</td></tr>`;
         Swal.fire({
             icon: 'error',
             title: 'เกิดข้อผิดพลาด',

@@ -21,9 +21,9 @@ let userTeam = null;
 
 // --- Constants for Overdue Calculation ---
 const SEVERITY_LIMITS = { // Days allowed
-    medium: 15,
-    high: 7,
-    critical: 3,
+    medium: 7,
+    high: 3,
+    critical: 1,
     low: Infinity // No limit for low severity
 };
 const OVERDUE_ELIGIBLE_STATUSES = ["pending", "admit", "resolved"]; // Statuses that can become Overdue
@@ -33,12 +33,14 @@ const OVERDUE_ELIGIBLE_STATUSES = ["pending", "admit", "resolved"]; // Statuses 
  * Calculates if a complaint is overdue and returns its display status.
  * @param {object} complaint - The complaint object.
  * @returns {object} - An object with 'status' and 'daysOverdue' (if applicable).
+ *                      And 'wasEverOverdue' to indicate if it was overdue at the point of completion.
  */
 function getDisplayStatus(complaint) {
     const originalStatus = complaint.status ? complaint.status.toLowerCase() : 'unknown';
     const severity = complaint.severity_level ? complaint.severity_level.toLowerCase() : 'unknown';
     const complaintDateStr = complaint.date; // Assuming 'date' is the creation/problem date field
     let daysOverdue = 0;
+    let wasEverOverdue = false; // New flag
 
     // Only calculate overdue for eligible statuses and known severities with limits
     if (!OVERDUE_ELIGIBLE_STATUSES.includes(originalStatus) || severity === 'low' || !SEVERITY_LIMITS[severity]) {
@@ -150,11 +152,12 @@ function displayComplaints(complaints) {
         const row = tableBody.insertRow();
         // เก็บ ISO date string (วันที่พบปัญหา) ไว้ใน data attribute เพื่อการ sort
         row.dataset.isoDate = complaint.date;
+        row.dataset.complaintId = complaint._id; // เพิ่ม ID ของ complaint ไว้ใน data attribute
 
         // --- Calculate Display Status (Handles Overdue) ---
         const statusInfo = getDisplayStatus(complaint);
-        const displayStatus = statusInfo.status;
-        const displayStatusLower = displayStatus.toLowerCase();
+        let displayStatusText = complaint.status || 'Unknown'; // เริ่มต้นด้วยสถานะดั้งเดิมของ complaint
+        const originalStatusLower = (complaint.status || '').toLowerCase(); // สถานะดั้งเดิมจาก complaint object
 
         // --- Format Dates (Thai Format) ---
         const dateOptions = { year: 'numeric', month: 'short', day: 'numeric' };
@@ -173,20 +176,30 @@ function displayComplaints(complaints) {
             } catch (e) { console.error("Error formatting complete_date:", e); }
         }
 
-        // --- Determine Status CSS Class ---
+        // --- Determine Status Display Text and CSS Class ---
         let statusClass = "status"; // Base class
-        if (displayStatusLower === "forwarded") {
+        // กำหนด displayStatusText และ statusClass เบื้องต้นจาก originalStatusLower
+        if (originalStatusLower === "forwarded") {
             statusClass += " status-forwarded";
-        } else if (displayStatusLower === "complete") {
+            displayStatusText = "Waiting for Approval"; // เปลี่ยนข้อความที่แสดงผล
+        } else if (originalStatusLower === "complete") {
             statusClass += " status-complete";
-        } else if (displayStatusLower === "admit") {
+            // displayStatusText จะเป็น "Complete" (จากค่าเริ่มต้น)
+        } else if (originalStatusLower === "admit") {
             statusClass += " status-admit";
-        } else if (displayStatusLower === "pending") {
+            displayStatusText = "On Process"; // เปลี่ยนข้อความที่แสดงผล
+        } else if (originalStatusLower === "pending") {
              statusClass += " status-pending";
-        } else if (displayStatusLower === "resolved") {
+            // displayStatusText จะเป็น "Pending" (จากค่าเริ่มต้น)
+        } else if (originalStatusLower === "resolved") {
              statusClass += " status-resolved";
-        } else if (displayStatusLower === "overdue") {
-             statusClass += " status-overdue";
+            // displayStatusText จะเป็น "Resolved" (จากค่าเริ่มต้น)
+        }
+
+        // หากสถานะที่คำนวณได้คือ "Overdue" ให้ override displayStatusText และ statusClass
+        if (statusInfo.status.toLowerCase() === "overdue") {
+             statusClass = "status status-overdue"; // Override class ให้เป็น overdue เท่านั้น
+             displayStatusText = "Complete(Overdue)"; // ตั้งค่าข้อความตามที่ต้องการ
         }
 
         // --- Populate Table Cells (Using escapeHTML) ---
@@ -200,10 +213,10 @@ function displayComplaints(complaints) {
         row.insertCell().textContent = escapeHTML(formattedCompleteDate);
         row.insertCell().textContent = escapeHTML(complaint.correction2 || '-');
         const statusCell = row.insertCell();
-        statusCell.textContent = escapeHTML(displayStatus); // Use calculated display status
+        statusCell.textContent = escapeHTML(displayStatusText); // ใช้ข้อความที่อาจถูกแก้ไขแล้ว
         statusCell.className = statusClass; // Apply the determined class for styling
 
-        if (displayStatusLower === "overdue" && statusInfo.daysOverdue > 0) {
+        if (statusInfo.status.toLowerCase() === "overdue" && statusInfo.daysOverdue > 0) {
             statusCell.style.position = 'relative'; // Needed for tooltip positioning
             statusCell.innerHTML += ` <span class="tooltip-overdue">ล้าช้า ${statusInfo.daysOverdue} วัน</span>`;
         }
@@ -325,30 +338,70 @@ function exportTableToExcel() {
              console.error("Table header not found for export.");
              return;
         }
-        const headers = Array.from(headerRow.querySelectorAll("th")).map(th => th.innerText.trim());
+        // Headers จากตารางที่แสดงผล
+        const displayedTableHeaders = Array.from(headerRow.querySelectorAll("th")).map(th => th.innerText.trim());
+        const correctionDisplayColumnHeaderText = "การแก้ไขปัญหา"; // ชื่อ Header ของคอลัมน์การแก้ไขปัญหาในตารางที่แสดง
+        const correctionDisplayColumnIndex = displayedTableHeaders.findIndex(header => header === correctionDisplayColumnHeaderText);
+
+        // สร้าง Headers ใหม่สำหรับ Excel
+        let excelHeaders = [];
+        if (correctionDisplayColumnIndex !== -1) {
+            // คัดลอก Headers ก่อนคอลัมน์ "การแก้ไขปัญหา"
+            excelHeaders = excelHeaders.concat(displayedTableHeaders.slice(0, correctionDisplayColumnIndex));
+            // เพิ่ม Headers สำหรับ correction1-5
+            excelHeaders.push("การแก้ไขปัญหา 1", "การแก้ไขปัญหา 2", "การแก้ไขปัญหา 3", "การแก้ไขปัญหา 4", "การแก้ไขปัญหา 5");
+            // คัดลอก Headers หลังคอลัมน์ "การแก้ไขปัญหา"
+            excelHeaders = excelHeaders.concat(displayedTableHeaders.slice(correctionDisplayColumnIndex + 1));
+        } else {
+            // ถ้าไม่พบคอลัมน์ "การแก้ไขปัญหา" ก็ใช้ Headers เดิม (หรือจัดการ error ตามความเหมาะสม)
+            console.warn(`Header "${correctionDisplayColumnHeaderText}" not found. Exporting with original headers and joined corrections.`);
+            excelHeaders = [...displayedTableHeaders]; // ใช้ headers เดิม
+        }
 
         const dataRows = table.querySelectorAll("#complaints-table tr");
-        const data = Array.from(dataRows).map(row => {
+        const excelSheetData = Array.from(dataRows).map(row => {
             const firstCell = row.querySelector("td");
             if (firstCell && firstCell.colSpan === 10) {
                 return null; // Skip 'no complaints' row
             }
-            return Array.from(row.querySelectorAll("td")).map(td => td.innerText.trim());
+
+            const complaintId = row.dataset.complaintId;
+            const originalComplaint = allComplaints.find(c => String(c._id) === complaintId);
+            const displayedCellsText = Array.from(row.querySelectorAll("td")).map(td => td.innerText.trim());
+            let excelRowValues = [];
+
+            if (correctionDisplayColumnIndex !== -1 && originalComplaint) {
+                // คัดลอกข้อมูลจากเซลล์ที่แสดงผลก่อนถึงคอลัมน์ "การแก้ไขปัญหา"
+                excelRowValues = excelRowValues.concat(displayedCellsText.slice(0, correctionDisplayColumnIndex));
+                // เพิ่มข้อมูล correction1-5
+                excelRowValues.push(originalComplaint.correction1 || '');
+                excelRowValues.push(originalComplaint.correction2 || '');
+                excelRowValues.push(originalComplaint.correction3 || '');
+                excelRowValues.push(originalComplaint.correction4 || '');
+                excelRowValues.push(originalComplaint.correction5 || '');
+                // คัดลอกข้อมูลจากเซลล์ที่แสดงผลหลังคอลัมน์ "การแก้ไขปัญหา"
+                excelRowValues = excelRowValues.concat(displayedCellsText.slice(correctionDisplayColumnIndex + 1));
+            } else {
+                // ถ้าไม่พบคอลัมน์ "การแก้ไขปัญหา" หรือ originalComplaint ก็ใช้ข้อมูลจากเซลล์ที่แสดงผลทั้งหมด
+                // ซึ่งกรณีนี้ correction จะยังรวมกันอยู่ถ้า header ไม่ถูกพบ
+                excelRowValues = [...displayedCellsText];
+                }
+            return excelRowValues;
         }).filter(row => row !== null);
 
 
-        if (data.length === 0) {
+        if (excelSheetData.length === 0) {
              console.warn("No data to export.");
              Swal.fire('ไม่มีข้อมูล', 'ไม่พบข้อมูลในตารางที่จะส่งออก', 'warning');
              return;
         }
 
-        const ws = XLSX.utils.aoa_to_sheet([headers, ...data]);
+        const ws = XLSX.utils.aoa_to_sheet([excelHeaders, ...excelSheetData]);
 
-        const colWidths = headers.map((_, i) => ({
+        const colWidths = excelHeaders.map((_, i) => ({
             wch: Math.max(
-                headers[i].length,
-                ...data.map(row => (row[i] ? row[i].length : 0))
+                (excelHeaders[i] ? excelHeaders[i].length : 0), // ตรวจสอบว่า excelHeaders[i] มีค่า
+                ...excelSheetData.map(row => (row[i] ? String(row[i]).length : 0)) // แปลง row[i] เป็น string ก่อนหา length
             ) + 2
         }));
         ws['!cols'] = colWidths;
@@ -358,6 +411,13 @@ function exportTableToExcel() {
 
         XLSX.writeFile(wb, "complaints_report.xlsx");
         console.log("Excel export successful.");
+        Swal.fire({
+            icon: 'success',
+            title: 'ส่งออกข้อมูลสำเร็จ!',
+            text: 'ไฟล์ Excel ได้ถูกดาวน์โหลดแล้ว',
+            showConfirmButton: false,
+            timer: 2000
+        });
 
     } catch (error) {
         console.error("Error exporting to Excel:", error);

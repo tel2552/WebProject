@@ -78,13 +78,14 @@ function displayComplaints(complaints) {
         const contact = complaint.contact || '';
         const team = complaint.team || 'N/A';
         const status = complaint.status || 'N/A';
+        let displayStatusText = status;
         const complaintId = complaint._id;
 
         // สร้าง Cell ต่างๆ พร้อม escapeHTML
         row.insertCell().textContent = escapeHTML(title);
         // row.insertCell().textContent = escapeHTML(details); // ถ้าจะเปิดแสดงรายละเอียด
         row.insertCell().textContent = escapeHTML(name);
-        row.insertCell().textContent = escapeHTML(date); // แสดงวันที่ภาษาไทย
+        row.insertCell().textContent = escapeHTML(date);
         row.insertCell().textContent = escapeHTML(contact);
         row.insertCell().textContent = escapeHTML(team);
 
@@ -92,7 +93,6 @@ function displayComplaints(complaints) {
         const statusCell = row.insertCell();
         statusCell.textContent = escapeHTML(status);
         statusCell.classList.add('status');
-        // ใช้ toLowerCase เพื่อความแน่นอนในการเทียบ status
         const statusLower = status.toLowerCase();
         if (statusLower === 'resolved') {
             statusCell.classList.add('status-resolved');
@@ -100,14 +100,17 @@ function displayComplaints(complaints) {
             statusCell.classList.add('status-pending');
         } else if (statusLower === 'admit') {
             statusCell.classList.add('status-admit');
+            displayStatusText = "On Process"; // เปลี่ยนข้อความที่แสดงผล
         } else if (statusLower === 'forwarded') {
             statusCell.classList.add('status-forwarded');
+            displayStatusText = "Waiting for Approval"; // เปลี่ยนข้อความที่แสดงผล
         } else if (statusLower === 'complete') {
             statusCell.classList.add('status-complete');
-        } else if (statusLower === 'overdue') { // เพิ่มเผื่อถ้ามีการคำนวณ Overdue
+        } else if (statusLower === 'overdue') {
             statusCell.classList.add('status-overdue');
         }
 
+        statusCell.textContent = escapeHTML(displayStatusText); // อัปเดต textContent ด้วย displayStatusText
 
         // Cell ปุ่ม Update
         const updateCell = row.insertCell();

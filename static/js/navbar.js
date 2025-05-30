@@ -1,4 +1,4 @@
-import { getAccessToken, removeAccessToken, getUserData } from './token-manager.js'; // Import getUserData เพิ่ม
+import { getAccessToken, removeAccessToken, getUserData, getUsername } from './token-manager.js'; // Import getUsername
 
 // --- Logout Function ---
 const logoutLink = document.getElementById("logout-link");
@@ -94,6 +94,11 @@ document.querySelectorAll(".navbar a").forEach(link => {
 document.addEventListener("DOMContentLoaded", async () => {
     console.log("Navbar script loaded successfully!");
 
+    const navbarYearSpan = document.getElementById('navbar-current-year');
+    if (navbarYearSpan) {
+        navbarYearSpan.textContent = new Date().getFullYear();
+    }
+    
     //แสดง Navbar ตอนโหลดหน้าเว็บ
     const navbar = document.getElementById("navbar-container");
     if (navbar) {
@@ -104,6 +109,18 @@ document.addEventListener("DOMContentLoaded", async () => {
     const toggleButton = document.querySelector(".menu-toggle");
     if (toggleButton) {
         toggleButton.addEventListener("click", toggleNavbar);
+    }
+
+    // --- แสดงชื่อผู้ใช้ใน Navbar ---
+    const usernameSpan = document.getElementById('navbar-username');
+    if (usernameSpan) {
+        // const loggedInUser = localStorage.getItem('username'); // เดิม
+        const currentUsername = await getUsername(); // เรียกใช้ getUsername จาก token-manager
+        if (currentUsername) {
+            usernameSpan.textContent = currentUsername;
+        } else {
+            usernameSpan.textContent = 'Guest'; // หรือข้อความอื่นถ้าไม่พบชื่อผู้ใช้ หรือเกิด error
+        }
     }
 
     // --- ตรวจสอบและซ่อนลิงก์ Admin Control ---

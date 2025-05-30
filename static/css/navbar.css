@@ -69,3 +69,39 @@
     .hidden {
         display: none;
     }
+
+    .navbar .user-info {
+        padding: 15px 20px;
+        color: #f2f2f2; /* หรือสีที่เข้ากับ Navbar ของคุณ */
+        text-align: center;
+        border-bottom: 1px solid #444; /* เส้นคั่น (ถ้าต้องการ) */
+        margin-bottom: 10px; /* ระยะห่างจากเมนูอื่นๆ */
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px; /* ระยะห่างระหว่างไอคอนกับชื่อ */
+    }
+    
+    .navbar .user-info i {
+        font-size: 1.2em;
+    }
+    
+    .navbar .user-info #navbar-username {
+        font-weight: bold;
+    }
+
+    .navbar-watermark {
+        position: absolute;
+        bottom: 10px; /* Adjust as needed for spacing from the bottom */
+        left: 0;
+        width: 100%;
+        text-align: center;
+        padding: 5px 0;
+        font-size: 0.9em; /* Smaller font size */
+        color: #a0a0a0; /* Lighter color for watermark */
+        box-sizing: border-box;
+    }
+    
+    .navbar-watermark p {
+        margin: 0;
+    }

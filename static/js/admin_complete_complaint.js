@@ -100,15 +100,27 @@ function updateRecipientsTable() {
 document.getElementById("correction-form").addEventListener("submit", async (e) => {
     e.preventDefault();
 
+    // Show loading Swal before starting the fetch operation
+    Swal.fire({
+        title: 'กำลังดำเนินการอนุมัติ...',
+        text: 'กรุณารอสักครู่ ระบบกำลังบันทึกข้อมูล',
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
+
     // Collect all form data
     const form = e.target;
     const formData = new FormData(form);
-    const approverRecommendation = document.getElementById('approver-recommendation').value;
+    // The approver_recommendation is already part of formData if the input field has a 'name' attribute.
+    // If it doesn't have a 'name' attribute, you might need to append it manually if needed by the backend for this specific endpoint.
+    // formData.append('approver_recommendation', document.getElementById('approver-recommendation').value);
+
     const response = await fetch(`/admin/complete-complaint/${complaintId}`, {
         method: "POST",
         body: formData
     });
-
     if (response.ok) {
         Swal.fire({
             icon: 'success',
@@ -122,6 +134,7 @@ document.getElementById("correction-form").addEventListener("submit", async (e) 
             window.location.href = "/forwardeds"; // ไปยังหน้ารายการคำร้อง
         });
     } else {
+        Swal.close(); // Close the loading Swal if there's an error
         Swal.fire({
             icon: 'error',
             title: 'เกิดข้อผิดพลาด!',
@@ -134,8 +147,20 @@ document.getElementById("correction-form").addEventListener("submit", async (e) 
 // ปัดตกอนุมัติข้อร้องเรียน
 document.getElementById("undo-button").addEventListener("click", async (e) => {
     e.preventDefault();
+
+    // Show loading Swal before starting the fetch operation
+    Swal.fire({
+        title: 'กำลังส่งเรื่องกลับไปแก้ไข...',
+        text: 'กรุณารอสักครู่ ระบบกำลังดำเนินการ',
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
+
     const approverRecommendation = document.getElementById('approver-recommendation').value;
     try {
+        // Ensure the approverRecommendation is not empty if it's required by the backend
         const response = await fetch(`/admin/undo-complaint/${complaintId}`, {
             method: "POST",
             headers: {
@@ -147,7 +172,7 @@ document.getElementById("undo-button").addEventListener("click", async (e) => {
         if (response.ok) {
             Swal.fire({
                 icon: 'success',
-                title: 'ปัดตกคำร้องเรียบร้อยแล้ว!',
+                title: 'ส่งกลับแก้ไขคำร้องเรียบร้อยแล้ว!',
                 showConfirmButton: false,
                 timer: 1500,
                 timerProgressBar: true,
@@ -155,6 +180,7 @@ document.getElementById("undo-button").addEventListener("click", async (e) => {
                 window.location.href = "/forwardeds"; // Redirect to forwardeds page
             });
         } else {
+            Swal.close(); // Close the loading Swal
             const error = await response.json();
             Swal.fire({
                 icon: 'error',
@@ -164,6 +190,7 @@ document.getElementById("undo-button").addEventListener("click", async (e) => {
             console.error("Failed to undo cancellation:", error);
         }
     } catch (error) {
+        Swal.close(); // Close the loading Swal in case of a network error
         Swal.fire({
             icon: 'error',
             title: `Failed to undo cancellation`,
